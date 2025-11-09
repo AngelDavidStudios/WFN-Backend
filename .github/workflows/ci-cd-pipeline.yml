@@ -142,14 +142,14 @@ jobs:
       - name: (Optional) Publish version
         id: publish
         run: |
-          VERSION=$(aws lambda publish-version --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}" --query Version --output text)
+          VERSION=$(aws lambda publish-version --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}" --query Version --output text)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: (Optional) Update alias to new version
         if: ${{ steps.publish.outputs.version }}
         run: |
           aws lambda update-alias \
-            --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}" \
+            --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}" \
             --name "${{ env.LAMBDA_ALIAS }}" \
             --function-version "${{ steps.publish.outputs.version }}"
 
