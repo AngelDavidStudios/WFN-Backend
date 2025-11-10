@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Amazon.DynamoDBv2.DataModel;
 
 namespace WFNSystem.API.Models;
@@ -6,6 +7,7 @@ namespace WFNSystem.API.Models;
 public class Workspace
 {
     [DynamoDBHashKey("id")]
+    [Required]
     public string ID_Workspace { get; set; }
     
     [DynamoDBProperty]

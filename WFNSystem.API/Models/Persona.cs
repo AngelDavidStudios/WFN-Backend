@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Amazon.DynamoDBv2.DataModel;
 
 namespace WFNSystem.API.Models;
@@ -18,28 +19,28 @@ public class Persona
     public string PrimerNombre { get; set; }
     
     [DynamoDBProperty]
-    public string SegundoNombre { get; set; }
+    public string? SegundoNombre { get; set; }
     
     [DynamoDBProperty]
     public string ApellidoMaterno { get; set; }
     
     [DynamoDBProperty]
-    public string ApellidoPaterno { get; set; }
+    public string? ApellidoPaterno { get; set; }
     
     [DynamoDBProperty]
     public string DateBirthday { get; set; }
     
     [DynamoDBProperty]
-    public int edad { get; set; }
+    public int Edad { get; set; }
     
     [DynamoDBProperty]
-    public List<string> Correo { get; set; }
+    public List<string>? Correo { get; set; }
     
     [DynamoDBProperty]
-    public List<string> Telefono { get; set; }
+    public List<string>? Telefono { get; set; }
     
     [DynamoDBProperty]
-    public List<Direccion> Direcciones { get; set; }
+    public List<Direccion>? Direcciones { get; set; }
     
     [DynamoDBProperty]
     public string DateCreated { get; set; }

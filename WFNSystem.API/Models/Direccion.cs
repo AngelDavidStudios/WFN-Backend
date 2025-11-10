@@ -15,5 +15,5 @@ public class Direccion
     public string Numero { get; set; }
     
     [DynamoDBProperty]
-    public string Piso { get; set; }
+    public string? Piso { get; set; }
 }

@@ -12,7 +12,7 @@ public class Departamento
     public string Nombre { get; set; }
     
     [DynamoDBProperty]
-    public string Ubicacion { get; set; }
+    public string? Ubicacion { get; set; }
     
     [DynamoDBProperty]
     public string Email { get; set; }
