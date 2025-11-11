@@ -12,6 +12,9 @@ public class Nomina
     public string ID_Empleado { get; set; }
     
     [DynamoDBProperty]
+    public string Periodo { get; set; }
+    
+    [DynamoDBProperty]
     public List<Ingresos> Ingresos { get; set; }
     
     [DynamoDBProperty]
