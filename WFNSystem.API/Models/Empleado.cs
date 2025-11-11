@@ -21,6 +21,9 @@ public class Empleado
     public string FechaIngreso { get; set; }
     
     [DynamoDBProperty]
+    public decimal SalarioBase { get; set; }
+    
+    [DynamoDBProperty]
     public bool Is_DecimoTercMensual { get; set; }
     
     [DynamoDBProperty]

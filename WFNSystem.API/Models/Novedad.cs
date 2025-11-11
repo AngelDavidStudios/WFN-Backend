@@ -21,7 +21,7 @@ public class Novedad
     public string Descripcion { get; set; }
     
     [DynamoDBProperty]
-    public string MontoAplicado { get; set; }
+    public decimal MontoAplicado { get; set; }
     
     [DynamoDBProperty]
     public bool Is_Gravable { get; set; }
