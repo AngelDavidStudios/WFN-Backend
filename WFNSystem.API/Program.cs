@@ -1,8 +1,4 @@
-using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
-using WFNSystem.API.Models;
-using WFNSystem.API.Repository;
-using WFNSystem.API.Repository.Interfaces;
+using WFNSystem.API.Config;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,19 +9,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 builder.Services.AddCors();
 
-// Add AWS Lambda hosting
-builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
-
-//Services AWS
-var awsOptions = builder.Configuration.GetAWSOptions();
-awsOptions.Profile = "AdminAccess";
-builder.Services.AddDefaultAWSOptions(awsOptions);
-builder.Services.AddAWSService<IAmazonDynamoDB>();
-builder.Services.AddScoped<IDynamoDBContext, DynamoDBContext>();
-
-// Repositories
-builder.Services.AddScoped<IRepository<Persona>, PersonaRepository>();
-builder.Services.AddScoped<IDireccionRepository, DireccionRepository>();
+// Servicios del proyecto
+builder.Services.AddProjectDependencies(builder.Configuration);
 
 var app = builder.Build();
 
