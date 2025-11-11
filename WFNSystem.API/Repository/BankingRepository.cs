@@ -6,9 +6,9 @@ namespace WFNSystem.API.Repository;
 
 public class BankingRepository: IRepository<Banking>
 {
-    private readonly DynamoDBContext _context;
+    private readonly IDynamoDBContext _context;
     
-    public BankingRepository(DynamoDBContext context)
+    public BankingRepository(IDynamoDBContext context)
     {
         _context = context;
     }

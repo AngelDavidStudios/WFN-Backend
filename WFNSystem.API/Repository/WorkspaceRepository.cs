@@ -6,9 +6,9 @@ namespace WFNSystem.API.Repository;
 
 public class WorkspaceRepository: IRepository<Workspace>
 {
-    private readonly DynamoDBContext _context;
+    private readonly IDynamoDBContext _context;
     
-    public WorkspaceRepository(DynamoDBContext context)
+    public WorkspaceRepository(IDynamoDBContext context)
     {
         _context = context;
     }

@@ -23,6 +23,17 @@ public static class ServiceRegistration
 
         // Repositories
         services.AddScoped<IRepository<Persona>, PersonaRepository>();
+        services.AddScoped<IRepository<Empleado>, EmpleadoRepository>();
+        services.AddScoped<IRepository<Banking>, BankingRepository>();
+        services.AddScoped<IRepository<Departamento>, DepartamentoRepository>();
+        services.AddScoped<IRepository<Egresos>, EgresosRepository>();
+        services.AddScoped<IRepository<Ingresos>, IngresosRepository>();
+        services.AddScoped<IRepository<Nomina>, NominaRepository>();
+        services.AddScoped<IRepository<Novedad>, NovedadRepository>();
+        services.AddScoped<IRepository<Parametro>, ParametroRepository>();
+        services.AddScoped<IRepository<Provision>, ProvisionRepository>();
+        services.AddScoped<IRepository<Workspace>, WorkspaceRepository>();
+        
         services.AddScoped<IDireccionRepository, DireccionRepository>();
 
         return services;
