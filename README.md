@@ -1,4 +1,4 @@
-# Documentación Backend del proyecto "Mini Core (Comisiones)"
+# Documentación Backend del proyecto "Sistema de Gestión de talento Humano (Work Force Nexxus)"
 ![net](https://img.shields.io/badge/dotnet-purple?logo=dotnet&label=.NET%208.0)
 
 
@@ -6,14 +6,32 @@
 
 
 
-### 🌀 Backend Mini Core 2025 🌀
+### 🌀 Administracion del Proyecto Work Force Nexxus 🌀
 
-> Este es backend de mi proyecto usando el ecosistema de .NET, el la cual es un WebApi (APIRest) donde esta implementado la logica del mini Core.
-> La base de datos usada es el NoSQL **DynamoDB** de AWS, donde se almacena la imformación de los vendedores, ventas y las reglas. El patron aplicado
-> es el de repositorio donde me ayuda a separar las responsabilidades de cada una de las clases y sobre todo para que pueda ser escalable a la hora de agregar nuevas funcionalidades.
-> Por ultimo al realizar la implementación y las pruebas de la API, use el servicio de **AWS Lambda** para poder empaquetar y subirla a la nube, donde se puede consumir desde mi frontend.
-> Al deployar mi API en AWS Lambda, use otro servicio de AWS que es el **API Gateway** donde me ayuda a facilitar las operaciones endpoints especificos desde un solo link y poder realizar
-> el consumo efectivo de la API desde el FrontEnd (VueJs).
+> WorkForce Nexxus es un sistema moderno de gestión de Talento Humano, diseñado para automatizar procesos críticos como: 
+> - Registro y administración de empleados 
+> - Procesamiento de nómina basado en reglas parametrizables 
+> - Gestión de contratos 
+> - Ingresos, egresos y novedades mensuales 
+> - Generación de reportes estratégicos. 
+
+> El backend fue construido con .NET 8 Web API, siguiendo principios de diseño limpio, arquitectura desacoplada y despliegue 100% serverless en AWS.
+El objetivo: un sistema ágil, seguro y escalable que respalde a departamentos de RR.HH. que ya no pueden sobrevivir con hojas de Excel, correos perdidos y “luego lo reviso” administrativos.
+
+## 🚀 Arquitectura General del Backend
+
+> El backend se construye sobre pilares sólidos y servicios totalmente administrados de AWS, diseñados para soportar una carga creciente sin sacrificar rendimiento. 
+> Tecnologías principales:
+> - .NET 8 Web API (C#) – núcleo del backend y lógica empresarial.
+> - Amazon DynamoDB – base de datos NoSQL para empleados, nómina, contratos y reglas 
+> - AWS Lambda – hosting serverless del API compilado 
+> - API Gateway – puerta de entrada para exponer endpoints REST 
+> - GitHub Actions (CI/CD) – despliegue automático hacia Lambda 
+> - AWS IAM – control estricto de roles y seguridad 
+> - Vue 3 + TypeScript (Frontend) – consume el backend 
+> - Amazon Cognito – autenticación y autorización
+
+> Un sistema serverless, rápido y eficiente… casi tan rápido como procesos de RR.HH. cuando ya es fin de mes.
 
 ## Lista de elementos aplicados y aprendidos en este proyecto
 
