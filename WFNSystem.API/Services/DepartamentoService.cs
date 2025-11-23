@@ -23,48 +23,41 @@ public class DepartamentoService: IDepartamentoService
         return await _departamentoRepo.GetByIdAsync(deptoId);
     }
 
-    public async Task<Departamento> CreateAsync(Departamento depto)
+    public async Task<Departamento> CreateAsync(Departamento departamento)
     {
-        // Validaciones mínimas (puedes agregar más después)
-        if (string.IsNullOrWhiteSpace(depto.Nombre))
-            throw new ArgumentException("El nombre del departamento es obligatorio.");
+        // Crear ID único
+        departamento.ID_Departamento = Guid.NewGuid().ToString();
 
-        if (string.IsNullOrWhiteSpace(depto.Email))
-            throw new ArgumentException("El email del departamento es obligatorio.");
+        // Construcción de claves
+        departamento.PK = $"DEP#{departamento.ID_Departamento}";
+        departamento.SK = "META#DEP";
 
-        // Generar ID desde backend
-        depto.ID_Departamento = Guid.NewGuid().ToString();
-
-        // Asignar PK/SK
-        depto.PK = $"DEP#{depto.ID_Departamento}";
-        depto.SK = "META#DEP";
-
-        await _departamentoRepo.AddAsync(depto);
-        return depto;
+        await _departamentoRepo.AddAsync(departamento);
+        return departamento;
     }
 
-    public async Task<Departamento> UpdateAsync(Departamento depto)
+    public async Task<Departamento> UpdateAsync(Departamento departamento)
     {
-        var existing = await _departamentoRepo.GetByIdAsync(depto.ID_Departamento);
+        // Verificar si existe
+        var exists = await _departamentoRepo.GetByIdAsync(departamento.ID_Departamento);
+        if (exists == null)
+            throw new Exception("El departamento que intentas actualizar no existe.");
 
-        if (existing == null)
-            throw new KeyNotFoundException("El departamento no existe.");
+        // Mantener claves correctas
+        departamento.PK = $"DEP#{departamento.ID_Departamento}";
+        departamento.SK = "META#DEP";
 
-        depto.PK = $"DEP#{depto.ID_Departamento}";
-        depto.SK = "META#DEP";
-
-        await _departamentoRepo.UpdateAsync(depto);
-        return depto;
+        await _departamentoRepo.UpdateAsync(departamento);
+        return departamento;
     }
 
-    public async Task<bool> DeleteAsync(string deptoId)
+    public async Task<bool> DeleteAsync(string departamentoId)
     {
-        var existing = await _departamentoRepo.GetByIdAsync(deptoId);
-
-        if (existing == null)
+        var exists = await _departamentoRepo.GetByIdAsync(departamentoId);
+        if (exists == null)
             return false;
 
-        await _departamentoRepo.DeleteAsync(deptoId);
+        await _departamentoRepo.DeleteAsync(departamentoId);
         return true;
     }
 }

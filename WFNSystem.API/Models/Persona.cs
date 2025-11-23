@@ -48,5 +48,5 @@ public class Persona
     public Direccion Direccion { get; set; } = new();
 
     [DynamoDBProperty]
-    public DateTime DateCreated { get; set; }
+    public string DateCreated { get; set; }
 }

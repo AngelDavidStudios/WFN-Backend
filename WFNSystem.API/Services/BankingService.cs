@@ -6,73 +6,70 @@ namespace WFNSystem.API.Services;
 
 public class BankingService: IBankingService
 {
-    private readonly IBankingRepository _bankRepo;
+    private readonly IBankingRepository _repo;
     private readonly IEmpleadoRepository _empleadoRepo;
 
-    public BankingService(
-        IBankingRepository bankRepo,
-        IEmpleadoRepository empleadoRepo)
+    public BankingService(IBankingRepository repo, IEmpleadoRepository empleadoRepo)
     {
-        _bankRepo = bankRepo;
+        _repo = repo;
         _empleadoRepo = empleadoRepo;
     }
-    
+
     public async Task<IEnumerable<Banking>> GetByEmpleadoAsync(string empleadoId)
     {
-        return await _bankRepo.GetBankingByEmpleadoIdAsync(empleadoId);
+        return await _repo.GetByEmpleadoAsync(empleadoId);
     }
 
     public async Task<Banking?> GetByIdAsync(string empleadoId, string bankingId)
     {
-        return await _bankRepo.GetBankingByIdAsync(empleadoId, bankingId);
+        return await _repo.GetByIdAsync(empleadoId, bankingId);
     }
 
     public async Task<Banking> CreateAsync(string empleadoId, Banking banking)
     {
-        // 1. Validar existencia del empleado
-        var empleado = await _empleadoRepo.GetByIdAsync(empleadoId);
-        if (empleado == null)
-            throw new ArgumentException("El empleado asociado no existe.");
+        // Validar que el empleado exista
+        var emp = await _empleadoRepo.GetByIdAsync(empleadoId);
+        if (emp == null)
+            throw new Exception("No se puede agregar cuenta bancaria: el empleado no existe.");
 
-        // 2. Generar el ID de la cuenta bancaria
+        // Crear nuevo ID
         banking.ID_Banking = Guid.NewGuid().ToString();
 
-        // 3. Asignar PK/SK correctos
+        // Construcción de claves
         banking.PK = $"EMP#{empleadoId}";
         banking.SK = $"BANK#{banking.ID_Banking}";
 
-        await _bankRepo.AddBankingAsync(banking);
+        await _repo.AddAsync(banking);
         return banking;
     }
 
     public async Task<Banking> UpdateAsync(string empleadoId, Banking banking)
     {
-        // 1. Validar existencia del empleado
-        var empleado = await _empleadoRepo.GetByIdAsync(empleadoId);
-        if (empleado == null)
-            throw new ArgumentException("El empleado no existe.");
+        // Validar empleado
+        var emp = await _empleadoRepo.GetByIdAsync(empleadoId);
+        if (emp == null)
+            throw new Exception("El empleado no existe.");
 
-        // 2. Verificar que la cuenta exista realmente
-        var existing = await _bankRepo.GetBankingByIdAsync(empleadoId, banking.ID_Banking);
-        if (existing == null)
-            throw new KeyNotFoundException("La cuenta bancaria no existe.");
+        // Validar que la cuenta exista antes de actualizar
+        var exists = await _repo.GetByIdAsync(empleadoId, banking.ID_Banking);
+        if (exists == null)
+            throw new Exception("La cuenta bancaria que intenta actualizar no existe.");
 
-        // 3. Reasignar PK/SK
+        // Mantener claves correctas
         banking.PK = $"EMP#{empleadoId}";
         banking.SK = $"BANK#{banking.ID_Banking}";
 
-        await _bankRepo.UpdateBankingAsync(banking);
+        await _repo.UpdateAsync(banking);
         return banking;
     }
 
     public async Task<bool> DeleteAsync(string empleadoId, string bankingId)
     {
-        var existing = await _bankRepo.GetBankingByIdAsync(empleadoId, bankingId);
-
-        if (existing == null)
+        var exists = await _repo.GetByIdAsync(empleadoId, bankingId);
+        if (exists == null)
             return false;
 
-        await _bankRepo.DeleteBankingAsync(empleadoId, bankingId);
+        await _repo.DeleteAsync(empleadoId, bankingId);
         return true;
     }
 }

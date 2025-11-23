@@ -45,7 +45,7 @@ public class Empleado
 
     // Fecha de creación del registro (DateTime)
     [DynamoDBProperty]
-    public DateTime DateCreated { get; set; }
+    public string DateCreated { get; set; }
 
     // Estado laboral normalizado
     [DynamoDBProperty]

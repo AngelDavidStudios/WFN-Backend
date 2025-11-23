@@ -6,101 +6,86 @@ namespace WFNSystem.API.Services;
 
 public class NovedadService: INovedadService
 {
-    private readonly INovedadRepository _novedadRepo;
-    private readonly IEmpleadoRepository _empleadoRepo;
-    private readonly IParametroRepository _parametroRepo;
+    private readonly INovedadRepository _repo;
 
-    public NovedadService(
-        INovedadRepository novedadRepo,
-        IEmpleadoRepository empleadoRepo,
-        IParametroRepository parametroRepo)
+    public NovedadService(INovedadRepository repo)
     {
-        _novedadRepo = novedadRepo;
-        _empleadoRepo = empleadoRepo;
-        _parametroRepo = parametroRepo;
+        _repo = repo;
     }
 
     public async Task<IEnumerable<Novedad>> GetByEmpleadoAsync(string empleadoId)
     {
-        return await _novedadRepo.GetNovedadesByEmpleadoAsync(empleadoId);
+        return await _repo.GetByEmpleadoAsync(empleadoId);
     }
 
     public async Task<IEnumerable<Novedad>> GetByPeriodoAsync(string empleadoId, string periodo)
     {
-        return await _novedadRepo.GetNovedadesByPeriodoAsync(empleadoId, periodo);
+        return await _repo.GetByPeriodoAsync(empleadoId, periodo);
     }
 
-    public async Task<Novedad?> GetByIdAsync(string empleadoId, string novedadId)
+    public async Task<Novedad?> GetByIdAsync(string empleadoId, string novedadId, string periodo)
     {
-        return await _novedadRepo.GetByIdAsync(empleadoId, novedadId);
+        return await _repo.GetByIdAsync(empleadoId, novedadId, periodo);
     }
 
     public async Task<Novedad> CreateAsync(string empleadoId, Novedad novedad)
     {
-        // 1. Validar existencia del empleado
-        var empleado = await _empleadoRepo.GetByIdAsync(empleadoId);
-        if (empleado == null)
-            throw new ArgumentException("El empleado asociado a la novedad no existe.");
-
-        // 2. Validar existencia del parámetro vinculado
-        var parametro = await _parametroRepo.GetByIdAsync(novedad.ID_Parametro);
-        if (parametro == null)
-            throw new ArgumentException("El parámetro asociado a la novedad no existe.");
-
-        // 3. Validaciones propias del dominio
-        if (novedad.MontoAplicado < 0)
-            throw new ArgumentException("El monto aplicado no puede ser negativo.");
-
-        if (string.IsNullOrWhiteSpace(novedad.FechaIngresada))
-            throw new ArgumentException("La fecha ingresada es obligatoria.");
-
-        if (string.IsNullOrWhiteSpace(novedad.TipoNovedad))
-            throw new ArgumentException("El tipo de novedad es obligatorio.");
-
-        // 4. Generar ID de la novedad
+        // Crear ID
         novedad.ID_Novedad = Guid.NewGuid().ToString();
 
-        // 5. Asignar PK/SK
-        novedad.PK = $"EMP#{empleadoId}";
-        novedad.SK = $"NOV#{novedad.ID_Novedad}";
+        // Normalizar periodo
+        if (string.IsNullOrWhiteSpace(novedad.Periodo))
+            throw new Exception("La novedad debe incluir el periodo.");
 
-        // 6. Guardar
-        await _novedadRepo.AddAsync(novedad);
+        string periodo = novedad.Periodo.Trim().ToUpper();
+
+        // Construcción de claves
+        novedad.PK = $"EMP#{empleadoId}";
+        novedad.SK = $"NOV#{periodo}#{novedad.ID_Novedad}";
+
+        // Timestamp
+        novedad.FechaIngresada = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+        // Sanitizar tipos
+        novedad.TipoNovedad = novedad.TipoNovedad.Trim().ToUpper().Replace(" ", "_");
+        novedad.ID_Parametro = novedad.ID_Parametro.Trim();
+
+        await _repo.AddAsync(novedad);
         return novedad;
     }
 
     public async Task<Novedad> UpdateAsync(string empleadoId, Novedad novedad)
     {
-        // 1. Validar existencia del empleado
-        var empleado = await _empleadoRepo.GetByIdAsync(empleadoId);
-        if (empleado == null)
-            throw new ArgumentException("El empleado no existe.");
+        if (string.IsNullOrWhiteSpace(novedad.ID_Novedad))
+            throw new Exception("La novedad debe incluir ID_Novedad para actualizar.");
 
-        // 2. Validar existencia de la novedad
-        var existing = await _novedadRepo.GetByIdAsync(empleadoId, novedad.ID_Novedad);
-        if (existing == null)
-            throw new KeyNotFoundException("La novedad no existe.");
+        if (string.IsNullOrWhiteSpace(novedad.Periodo))
+            throw new Exception("La novedad debe incluir Periodo para actualizar.");
 
-        // 3. Validar parámetro (en caso de que se cambie)
-        var parametro = await _parametroRepo.GetByIdAsync(novedad.ID_Parametro);
-        if (parametro == null)
-            throw new ArgumentException("El parámetro asociado a la novedad no existe.");
+        string periodo = novedad.Periodo.Trim().ToUpper();
 
-        // 4. Asignar PK/SK correctos
+        var exists = await _repo.GetByIdAsync(empleadoId, novedad.ID_Novedad, periodo);
+        if (exists == null)
+            throw new Exception("La novedad no existe.");
+
+        // Reconstruimos PK & SK
         novedad.PK = $"EMP#{empleadoId}";
-        novedad.SK = $"NOV#{novedad.ID_Novedad}";
+        novedad.SK = $"NOV#{periodo}#{novedad.ID_Novedad}";
 
-        await _novedadRepo.UpdateAsync(novedad);
+        // Normalizar tipo
+        novedad.TipoNovedad = novedad.TipoNovedad.Trim().ToUpper().Replace(" ", "_");
+
+        await _repo.UpdateAsync(novedad);
         return novedad;
     }
 
-    public async Task<bool> DeleteAsync(string empleadoId, string novedadId)
+    public async Task<bool> DeleteAsync(string empleadoId, string novedadId, string periodo)
     {
-        var existing = await _novedadRepo.GetByIdAsync(empleadoId, novedadId);
-        if (existing == null)
+        var exists = await _repo.GetByIdAsync(empleadoId, novedadId, periodo);
+        if (exists == null)
             return false;
 
-        await _novedadRepo.DeleteAsync(empleadoId, novedadId);
+        await _repo.DeleteAsync(empleadoId, periodo, novedadId);
         return true;
     }
 }

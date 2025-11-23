@@ -9,7 +9,7 @@ public interface INovedadService
 
     Task<Novedad?> GetByIdAsync(string empleadoId, string periodo, string novedadId);
 
-    Task<Novedad> CreateAsync(string empleadoId, string periodo, Novedad novedad);
-    Task<Novedad> UpdateAsync(string empleadoId, string periodo, Novedad novedad);
-    Task<bool> DeleteAsync(string empleadoId, string periodo, string novedadId);
+    Task<Novedad> CreateAsync(string empleadoId, Novedad novedad);
+    Task<Novedad> UpdateAsync(string empleadoId, Novedad novedad);
+    Task<bool> DeleteAsync(string empleadoId, string novedadId, string periodo);
 }

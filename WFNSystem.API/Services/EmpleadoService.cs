@@ -6,95 +6,88 @@ namespace WFNSystem.API.Services;
 
 public class EmpleadoService: IEmpleadoService
 {
-    private readonly IEmpleadoRepository _empleadoRepo;
+    private readonly IEmpleadoRepository _repo;
     private readonly IPersonaRepository _personaRepo;
-    private readonly IDepartamentoRepository _deptoRepo;
-    
+    private readonly IDepartamentoRepository _departamentoRepo;
+
     public EmpleadoService(
-        IEmpleadoRepository empleadoRepo,
+        IEmpleadoRepository repo,
         IPersonaRepository personaRepo,
-        IDepartamentoRepository deptoRepo)
+        IDepartamentoRepository departamentoRepo)
     {
-        _empleadoRepo = empleadoRepo;
+        _repo = repo;
         _personaRepo = personaRepo;
-        _deptoRepo = deptoRepo;
+        _departamentoRepo = departamentoRepo;
     }
 
     public async Task<IEnumerable<Empleado>> GetAllAsync()
     {
-        return await _empleadoRepo.GetAllAsync();
+        return await _repo.GetAllAsync();
     }
 
     public async Task<Empleado?> GetByIdAsync(string empleadoId)
     {
-        return await _empleadoRepo.GetByIdAsync(empleadoId);
+        return await _repo.GetByIdAsync(empleadoId);
     }
 
     public async Task<Empleado> CreateAsync(Empleado empleado)
     {
-        // 1. Validar Persona
+        // Validar que Persona exista
         var persona = await _personaRepo.GetByIdAsync(empleado.ID_Persona);
         if (persona == null)
-            throw new ArgumentException("La persona asociada al empleado no existe.");
+            throw new Exception("La persona asociada al empleado no existe.");
 
-        // 2. Validar Departamento
-        var depto = await _deptoRepo.GetByIdAsync(empleado.ID_Departamento);
-        if (depto == null)
-            throw new ArgumentException("El departamento asociado no existe.");
+        // Validar que Departamento exista
+        var dep = await _departamentoRepo.GetByIdAsync(empleado.ID_Departamento);
+        if (dep == null)
+            throw new Exception("El departamento asociado al empleado no existe.");
 
-        // 3. Generar ID Empleado
+        // Crear nuevo ID
         empleado.ID_Empleado = Guid.NewGuid().ToString();
 
-        // 4. Asignar PK/SK
+        // Construcción de claves
         empleado.PK = $"EMP#{empleado.ID_Empleado}";
         empleado.SK = "META#EMP";
 
-        // 5. Fecha creación
-        empleado.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        // Fecha ISO
+        empleado.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-        // 6. Validar defaults de estado laboral
-        if (empleado.StatusLaboral == null)
-            empleado.StatusLaboral = StatusLaboral.Active;
-
-        await _empleadoRepo.AddAsync(empleado);
+        await _repo.AddAsync(empleado);
         return empleado;
     }
 
     public async Task<Empleado> UpdateAsync(Empleado empleado)
     {
-        var existing = await _empleadoRepo.GetByIdAsync(empleado.ID_Empleado);
-        if (existing == null)
-            throw new KeyNotFoundException("El empleado no existe.");
+        // Validar existencia
+        var exists = await _repo.GetByIdAsync(empleado.ID_Empleado);
+        if (exists == null)
+            throw new Exception("El empleado que intenta actualizar no existe.");
 
-        // Validar persona si se cambia
+        // Validar Persona
         var persona = await _personaRepo.GetByIdAsync(empleado.ID_Persona);
         if (persona == null)
-            throw new ArgumentException("La persona asociada no existe.");
+            throw new Exception("La persona asociada al empleado no existe.");
 
-        // Validar departamento si se cambia
-        var depto = await _deptoRepo.GetByIdAsync(empleado.ID_Departamento);
-        if (depto == null)
-            throw new ArgumentException("El departamento asociado no existe.");
+        // Validar Departamento
+        var dep = await _departamentoRepo.GetByIdAsync(empleado.ID_Departamento);
+        if (dep == null)
+            throw new Exception("El departamento asociado al empleado no existe.");
 
+        // Mantener claves correctas
         empleado.PK = $"EMP#{empleado.ID_Empleado}";
         empleado.SK = "META#EMP";
 
-        await _empleadoRepo.UpdateAsync(empleado);
+        await _repo.UpdateAsync(empleado);
         return empleado;
     }
 
     public async Task<bool> DeleteAsync(string empleadoId)
     {
-        var existing = await _empleadoRepo.GetByIdAsync(empleadoId);
-        if (existing == null)
+        var exists = await _repo.GetByIdAsync(empleadoId);
+        if (exists == null)
             return false;
 
-        await _empleadoRepo.DeleteAsync(empleadoId);
+        await _repo.DeleteAsync(empleadoId);
         return true;
-    }
-
-    public async Task<object?> GetEmpleadoFullAsync(string empleadoId)
-    {
-        return await _empleadoRepo.GetEmpleadoFullAsync(empleadoId);
     }
 }

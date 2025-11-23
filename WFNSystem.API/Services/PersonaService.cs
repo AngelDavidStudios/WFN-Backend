@@ -6,72 +6,62 @@ namespace WFNSystem.API.Services;
 
 public class PersonaService: IPersonaService
 {
-    private readonly IPersonaRepository _personaRepo;
+    private readonly IPersonaRepository _repo;
 
-    public PersonaService(IPersonaRepository personaRepo)
+    public PersonaService(IPersonaRepository repo)
     {
-        _personaRepo = personaRepo;
+        _repo = repo;
     }
 
     public async Task<IEnumerable<Persona>> GetAllAsync()
     {
-        return await _personaRepo.GetAllAsync();
+        return await _repo.GetAllAsync();
     }
 
     public async Task<Persona?> GetByIdAsync(string personaId)
     {
-        return await _personaRepo.GetByIdAsync(personaId);
+        return await _repo.GetByIdAsync(personaId);
     }
 
     public async Task<Persona> CreateAsync(Persona persona)
     {
-        // Validación simple, podrías expandirla después
-        if (string.IsNullOrWhiteSpace(persona.DNI))
-            throw new ArgumentException("El DNI no puede estar vacío.");
-
-        if (string.IsNullOrWhiteSpace(persona.PrimerNombre))
-            throw new ArgumentException("El primer nombre es obligatorio.");
-
-        if (string.IsNullOrWhiteSpace(persona.ApellidoMaterno))
-            throw new ArgumentException("El apellido materno es obligatorio.");
-
-        // Generar ID
+        // Crear ID
         persona.ID_Persona = Guid.NewGuid().ToString();
 
-        // DateCreated desde backend
-        persona.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-dd");
-
+        // Construir claves
         persona.PK = $"PERSONA#{persona.ID_Persona}";
         persona.SK = "META#PERSONA";
 
-        await _personaRepo.AddAsync(persona);
+        // Fecha de creación
+        persona.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+
+        await _repo.AddAsync(persona);
+
         return persona;
     }
 
     public async Task<Persona> UpdateAsync(Persona persona)
     {
-        var existing = await _personaRepo.GetByIdAsync(persona.ID_Persona);
+        // Validación: debe existir
+        var exists = await _repo.GetByIdAsync(persona.ID_Persona);
+        if (exists == null)
+            throw new Exception("Persona no encontrada.");
 
-        if (existing == null)
-            throw new KeyNotFoundException("La persona no existe.");
-
-        // Se podrían agregar validaciones adicionales
-
+        // Mantener claves correctas
         persona.PK = $"PERSONA#{persona.ID_Persona}";
         persona.SK = "META#PERSONA";
 
-        await _personaRepo.UpdateAsync(persona);
+        await _repo.UpdateAsync(persona);
         return persona;
     }
 
     public async Task<bool> DeleteAsync(string personaId)
     {
-        var existing = await _personaRepo.GetByIdAsync(personaId);
-
-        if (existing == null)
+        var exists = await _repo.GetByIdAsync(personaId);
+        if (exists == null)
             return false;
 
-        await _personaRepo.DeleteAsync(personaId);
+        await _repo.DeleteAsync(personaId);
         return true;
     }
 }

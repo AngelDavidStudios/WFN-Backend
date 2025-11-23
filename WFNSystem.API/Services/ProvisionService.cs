@@ -6,157 +6,157 @@ namespace WFNSystem.API.Services;
 
 public class ProvisionService: IProvisionService
 {
-    private readonly IProvisionRepository _provisionRepo;
+    private readonly IProvisionRepository _repo;
     private readonly IEmpleadoRepository _empleadoRepo;
 
-    public ProvisionService(
-        IProvisionRepository provisionRepo,
-        IEmpleadoRepository empleadoRepo)
+    public ProvisionService(IProvisionRepository repo, IEmpleadoRepository empleadoRepo)
     {
-        _provisionRepo = provisionRepo;
+        _repo = repo;
         _empleadoRepo = empleadoRepo;
     }
 
     public async Task<IEnumerable<Provision>> GetByEmpleadoAsync(string empleadoId)
     {
-        return await _provisionRepo.GetProvisionesByEmpleadoAsync(empleadoId);
+        return await _repo.GetByEmpleadoAsync(empleadoId);
     }
 
     public async Task<IEnumerable<Provision>> GetByPeriodoAsync(string empleadoId, string periodo)
     {
-        return await _provisionRepo.GetProvisionesByPeriodoAsync(empleadoId, periodo);
+        periodo = periodo.Trim().ToUpper();
+        return await _repo.GetByPeriodoAsync(empleadoId, periodo);
     }
 
-    public async Task<Provision?> GetByIdAsync(string empleadoId, string provisionId)
+    public async Task<IEnumerable<Provision>> GetByTipoAsync(string empleadoId, string tipoProvision)
     {
-        return await _provisionRepo.GetByIdAsync(empleadoId, provisionId);
+        tipoProvision = tipoProvision.Trim().ToUpper().Replace(" ", "_");
+        return await _repo.GetByTipoAsync(empleadoId, tipoProvision);
     }
 
-    public async Task<Provision> CreateAsync(Provision provision)
+    public async Task<Provision?> GetByIdAsync(string empleadoId, string tipoProvision, string periodo)
     {
-        // Validar empleado
-        var empleado = await _empleadoRepo.GetByIdAsync(provision.ID_Empleado);
-        if (empleado == null)
-            throw new ArgumentException("El empleado asociado a la provisión no existe.");
+        tipoProvision = tipoProvision.Trim().ToUpper().Replace(" ", "_");
+        periodo = periodo.Trim().ToUpper();
 
-        // Generar ID
+        return await _repo.GetByIdAsync(empleadoId, tipoProvision, periodo);
+    }
+
+    public async Task<Provision> CreateAsync(string empleadoId, Provision provision)
+    {
+        // ID único
         provision.ID_Provision = Guid.NewGuid().ToString();
 
-        // PK/SK
-        provision.PK = $"EMP#{provision.ID_Empleado}";
-        provision.SK = $"PROV#{provision.ID_Provision}";
+        // Normalizar
+        provision.TipoProvision = provision.TipoProvision.Trim().ToUpper().Replace(" ", "_");
+        provision.Periodo = provision.Periodo.Trim().ToUpper();
 
-        await _provisionRepo.AddAsync(provision);
+        // Construir claves
+        provision.PK = $"EMP#{empleadoId}";
+        provision.SK = $"PROV#{provision.TipoProvision}#{provision.Periodo}";
+
+        // Timestamp
+        provision.FechaCalculo = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+        await _repo.AddAsync(provision);
         return provision;
     }
 
-    public async Task<Provision> UpdateAsync(Provision provision)
+    public async Task<Provision> UpdateAsync(string empleadoId, Provision provision)
     {
-        var existing = await _provisionRepo.GetByIdAsync(provision.ID_Empleado, provision.ID_Provision);
-        if (existing == null)
-            throw new KeyNotFoundException("La provisión no existe.");
+        if (string.IsNullOrWhiteSpace(provision.ID_Provision))
+            throw new Exception("No se puede actualizar una provisión sin ID.");
 
-        provision.PK = $"EMP#{provision.ID_Empleado}";
-        provision.SK = $"PROV#{provision.ID_Provision}";
+        if (string.IsNullOrWhiteSpace(provision.TipoProvision))
+            throw new Exception("La provisión debe incluir TipoProvision.");
 
-        await _provisionRepo.UpdateAsync(provision);
+        if (string.IsNullOrWhiteSpace(provision.Periodo))
+            throw new Exception("La provisión debe incluir Periodo.");
+
+        provision.TipoProvision = provision.TipoProvision.Trim().ToUpper().Replace(" ", "_");
+        provision.Periodo = provision.Periodo.Trim().ToUpper();
+
+        var exists = await _repo.GetByIdAsync(empleadoId, provision.TipoProvision, provision.Periodo);
+        if (exists == null)
+            throw new Exception("La provisión no existe.");
+
+        // Reconstrucción de claves
+        provision.PK = $"EMP#{empleadoId}";
+        provision.SK = $"PROV#{provision.TipoProvision}#{provision.Periodo}";
+
+        await _repo.UpdateAsync(provision);
         return provision;
     }
 
-    public async Task<bool> DeleteAsync(string empleadoId, string provisionId)
+    public async Task<bool> DeleteAsync(string empleadoId, string tipoProvision, string periodo)
     {
-        var existing = await _provisionRepo.GetByIdAsync(empleadoId, provisionId);
-        if (existing == null)
+        tipoProvision = tipoProvision.Trim().ToUpper().Replace(" ", "_");
+        periodo = periodo.Trim().ToUpper();
+
+        var exists = await _repo.GetByIdAsync(empleadoId, tipoProvision, periodo);
+        if (exists == null)
             return false;
 
-        await _provisionRepo.DeleteAsync(empleadoId, provisionId);
+        await _repo.DeleteAsync(empleadoId, tipoProvision, periodo);
         return true;
     }
 
+    // ============================================
+    //   PROCESO AUTOMÁTICO DE PROVISIONES ANUALES
+    // ============================================
     public async Task ProcesarProvisionesAsync(string empleadoId, string periodo)
     {
+        periodo = periodo.Trim().ToUpper();
+
         var empleado = await _empleadoRepo.GetByIdAsync(empleadoId);
         if (empleado == null)
-            throw new ArgumentException("El empleado no existe.");
+            throw new Exception("No existe el empleado para calcular provisiones.");
 
-        // Obtener las provisiones previas del empleado
-        var anteriores = await _provisionRepo.GetProvisionesByEmpleadoAsync(empleadoId);
-
-        // Obtener salario base
         decimal salario = empleado.SalarioBase;
+        int diasMes = 30;
 
-        // DECIMO TERCERO (8.33% mensual si es anualizado)
-        if (empleado.Is_DecimoTercMensual == false)
+        // Cálculo mensual aproximado
+        decimal decimoTercero = salario / 12;
+        decimal decimoCuarto = salario / 12;     // Luego puedes ajustar por región
+        decimal fondos = salario * 0.0833m;      // 8.33%
+
+        // Lista de provisiones a procesar
+        var provisionesAProcesar = new List<(string Tipo, decimal ValorMensual)>
         {
-            await ProcesarProvision(
-                tipo: "DECIMO_TERCERO",
-                empleadoId: empleadoId,
-                salario: salario,
-                periodo: periodo,
-                porcentajeAnual: 0.0833m,
-                anteriores
-            );
-        }
-
-        // DECIMO CUARTO (valor fijo si es anualizado)
-        // Ecuador: valor referencial de RMU, pero esto lo ajustas tú después.
-        if (empleado.Is_DecimoCuartoMensual == false)
-        {
-            await ProcesarProvision(
-                tipo: "DECIMO_CUARTO",
-                empleadoId: empleadoId,
-                salario: salario,
-                periodo: periodo,
-                porcentajeAnual: 1m / 12m,
-                anteriores
-            );
-        }
-
-        // FONDO DE RESERVA (8.33% si es anualizado)
-        if (empleado.Is_FondoReserva == false)
-        {
-            await ProcesarProvision(
-                tipo: "FONDO_RESERVA",
-                empleadoId: empleadoId,
-                salario: salario,
-                periodo: periodo,
-                porcentajeAnual: 0.0833m,
-                anteriores
-            );
-        }
-    }
-
-    private async Task ProcesarProvision(
-        string tipo,
-        string empleadoId,
-        decimal salario,
-        string periodo,
-        decimal porcentajeAnual,
-        IEnumerable<Provision> anteriores)
-    {
-        // Buscar provisión anterior del mismo tipo
-        var previa = anteriores.Where(p => p.TipoProvision == tipo).OrderByDescending(p => p.Periodo).FirstOrDefault();
-
-        decimal valorMensual = Math.Round(salario * porcentajeAnual, 2);
-        decimal acumuladoPrevio = previa?.Total ?? 0;
-        decimal nuevoTotal = acumuladoPrevio + valorMensual;
-
-        var provision = new Provision
-        {
-            ID_Provision = Guid.NewGuid().ToString(),
-            ID_Empleado = empleadoId,
-            TipoProvision = tipo,
-            Periodo = periodo,
-            ValorMensual = valorMensual,
-            Acumulado = acumuladoPrevio,
-            Total = nuevoTotal,
-            IsTransferred = false,
-            DetalleCalculo = $"Salario {salario} * {porcentajeAnual:P} = {valorMensual}"
+            ("DECIMO_TERCERO", decimoTercero),
+            ("DECIMO_CUARTO", decimoCuarto),
+            ("FONDOS_RESERVA", fondos)
         };
 
-        provision.PK = $"EMP#{empleadoId}";
-        provision.SK = $"PROV#{provision.ID_Provision}";
+        foreach (var p in provisionesAProcesar)
+        {
+            var existing = await _repo.GetByIdAsync(empleadoId, p.Tipo, periodo);
 
-        await _provisionRepo.AddAsync(provision);
+            if (existing == null)
+            {
+                // Crear nuevo registro
+                var nueva = new Provision
+                {
+                    ID_Provision = Guid.NewGuid().ToString(),
+                    PK = $"EMP#{empleadoId}",
+                    SK = $"PROV#{p.Tipo}#{periodo}",
+                    TipoProvision = p.Tipo,
+                    Periodo = periodo,
+                    ValorMensual = p.ValorMensual,
+                    Acumulado = p.ValorMensual,
+                    Total = p.ValorMensual,
+                    FechaCalculo = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    IsTransferred = false
+                };
+                await _repo.AddAsync(nueva);
+            }
+            else
+            {
+                // Actualizar acumulados
+                existing.ValorMensual = p.ValorMensual;
+                existing.Acumulado += p.ValorMensual;
+                existing.Total = existing.Acumulado;
+
+                await _repo.UpdateAsync(existing);
+            }
+        }
     }
 }

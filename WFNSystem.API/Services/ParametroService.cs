@@ -4,77 +4,76 @@ using WFNSystem.API.Services.Interfaces;
 
 namespace WFNSystem.API.Services;
 
-public class ParametroService: IParametroService
+public class ParametroService : IParametroService
 {
-    private readonly IParametroRepository _parametroRepo;
+    private readonly IParametroRepository _repo;
 
-    public ParametroService(IParametroRepository parametroRepo)
+    public ParametroService(IParametroRepository repo)
     {
-        _parametroRepo = parametroRepo;
+        _repo = repo;
     }
 
     public async Task<IEnumerable<Parametro>> GetAllAsync()
     {
-        return await _parametroRepo.GetAllAsync();
+        return await _repo.GetAllAsync();
     }
 
     public async Task<Parametro?> GetByIdAsync(string parametroId)
     {
-        return await _parametroRepo.GetByIdAsync(parametroId);
+        return await _repo.GetByIdAsync(parametroId);
     }
 
     public async Task<IEnumerable<Parametro>> GetByTipoAsync(string tipo)
     {
-        if (string.IsNullOrWhiteSpace(tipo))
-            throw new ArgumentException("El tipo de parámetro no puede estar vacío.");
-
-        return await _parametroRepo.GetByTipoAsync(tipo);
+        tipo = (tipo ?? string.Empty).Trim().ToUpper().Replace(" ", "_");
+        return await _repo.GetByTipoAsync(tipo);
     }
 
     public async Task<Parametro> CreateAsync(Parametro parametro)
     {
-        if (string.IsNullOrWhiteSpace(parametro.Tipo))
-            throw new ArgumentException("El tipo del parámetro es obligatorio.");
-
-        if (string.IsNullOrWhiteSpace(parametro.Descripcion))
-            throw new ArgumentException("La descripción del parámetro es obligatoria.");
-
-        // Generar ID
         parametro.ID_Parametro = Guid.NewGuid().ToString();
 
-        // Fecha creada desde backend
-        parametro.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-dd");
-
-        // PK/SK asignados para la tabla unificada
-        parametro.PK = "PARAMETRO#GLOBAL";
+        parametro.PK = "PARAM#GLOBAL";
         parametro.SK = $"PARAM#{parametro.ID_Parametro}";
 
-        await _parametroRepo.AddAsync(parametro);
+        parametro.Tipo = (parametro.Tipo ?? string.Empty)
+            .Trim()
+            .ToUpper()
+            .Replace(" ", "_");
+
+        parametro.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+        await _repo.AddAsync(parametro);
         return parametro;
     }
 
     public async Task<Parametro> UpdateAsync(Parametro parametro)
     {
-        var existing = await _parametroRepo.GetByIdAsync(parametro.ID_Parametro);
+        var exists = await _repo.GetByIdAsync(parametro.ID_Parametro);
+        if (exists == null)
+            throw new Exception("El parámetro que intenta actualizar no existe.");
 
-        if (existing == null)
-            throw new KeyNotFoundException("El parámetro no existe.");
-
-        parametro.PK = "PARAMETRO#GLOBAL";
+        parametro.PK = "PARAM#GLOBAL";
         parametro.SK = $"PARAM#{parametro.ID_Parametro}";
 
-        await _parametroRepo.UpdateAsync(parametro);
+        parametro.Tipo = (parametro.Tipo ?? string.Empty)
+            .Trim()
+            .ToUpper()
+            .Replace(" ", "_");
+        
+        parametro.DateCreated = exists.DateCreated;
+
+        await _repo.UpdateAsync(parametro);
         return parametro;
     }
 
     public async Task<bool> DeleteAsync(string parametroId)
     {
-        var existing = await _parametroRepo.GetByIdAsync(parametroId);
-
-        if (existing == null)
+        var exists = await _repo.GetByIdAsync(parametroId);
+        if (exists == null)
             return false;
 
-        await _parametroRepo.DeleteAsync(parametroId);
+        await _repo.DeleteAsync(parametroId);
         return true;
     }
 }

@@ -6,94 +6,115 @@ namespace WFNSystem.API.Services;
 
 public class WorkspaceService: IWorkspaceService
 {
-    private readonly IWorkspaceRepository _workspaceRepo;
+    private readonly IWorkspaceRepository _repo;
+    private readonly INominaRepository _nominaRepo;
 
-    public WorkspaceService(IWorkspaceRepository workspaceRepo)
+    public WorkspaceService(IWorkspaceRepository repo, INominaRepository nominaRepo)
     {
-        _workspaceRepo = workspaceRepo;
+        _repo = repo;
+        _nominaRepo = nominaRepo;
     }
 
     public async Task<IEnumerable<WorkspaceNomina>> GetAllAsync()
     {
-        return await _workspaceRepo.GetAllAsync();
+        return await _repo.GetAllAsync();
     }
 
     public async Task<WorkspaceNomina?> GetByPeriodoAsync(string periodo)
     {
-        return await _workspaceRepo.GetByPeriodoAsync(periodo);
+        periodo = periodo.Trim().ToUpper();
+        return await _repo.GetByPeriodoAsync(periodo);
     }
 
     public async Task<WorkspaceNomina> CrearPeriodoAsync(string periodo)
     {
-        // 1. Validar período no vacío
-        if (string.IsNullOrWhiteSpace(periodo))
-            throw new ArgumentException("El período es obligatorio (ej: 2025-03).");
+        periodo = periodo.Trim().ToUpper(); // "2025-11"
 
-        // 2. Verificar que no exista ya
-        var existing = await _workspaceRepo.GetByPeriodoAsync(periodo);
+        // Verificar si ya existe
+        var existing = await _repo.GetByPeriodoAsync(periodo);
         if (existing != null)
-            throw new InvalidOperationException("El período ya existe. No se puede duplicar.");
+            throw new Exception($"El período {periodo} ya existe.");
 
-        // 3. Crear workspace
         var workspace = new WorkspaceNomina
         {
+            PK = "WORKSPACE#GLOBAL",
+            SK = $"WORK#{periodo}",
+            ID_Workspace = Guid.NewGuid().ToString(),
             Periodo = periodo,
-            FechaCreacion = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+            FechaCreacion = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
             FechaCierre = string.Empty,
-            Estado = 0, // 0 = Abierto
-            PK = $"WS#{periodo}",
-            SK = "META#WS"
+            Estado = 0 // 0 = Abierto
         };
 
-        await _workspaceRepo.AddAsync(workspace);
+        await _repo.AddAsync(workspace);
+
         return workspace;
     }
 
     public async Task<WorkspaceNomina> CerrarPeriodoAsync(string periodo)
     {
-        // 1. Verificar existencia
-        var workspace = await _workspaceRepo.GetByPeriodoAsync(periodo);
+        periodo = periodo.Trim().ToUpper();
+
+        var workspace = await _repo.GetByPeriodoAsync(periodo);
         if (workspace == null)
-            throw new KeyNotFoundException("El período que intenta cerrar no existe.");
+            throw new Exception($"No existe el período {periodo}.");
 
-        // 2. Verificar si ya está cerrado
         if (workspace.Estado == 1)
-            throw new InvalidOperationException("El período ya está cerrado.");
+            throw new Exception("El período ya está cerrado.");
 
-        // 3. Cerrar el período
+        // Validar que existan nóminas en el período antes de cerrarlo
+        var nominas = await _nominaRepo.GetByPeriodoGlobalAsync(periodo);
+        if (!nominas.Any())
+            throw new Exception("No se puede cerrar un período sin nóminas generadas.");
+
         workspace.Estado = 1;
-        workspace.FechaCierre = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        workspace.FechaCierre = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-        await _workspaceRepo.UpdateAsync(workspace);
+        await _repo.UpdateAsync(workspace);
+
         return workspace;
     }
 
     public async Task<WorkspaceNomina> UpdateAsync(WorkspaceNomina workspace)
     {
-        workspace.PK = $"WS#{workspace.Periodo}";
-        workspace.SK = "META#WS";
+        // Normalizar clave
+        workspace.PK = "WORKSPACE#GLOBAL";
+        workspace.SK = $"WORK#{workspace.Periodo.Trim().ToUpper()}";
 
-        await _workspaceRepo.UpdateAsync(workspace);
+        await _repo.UpdateAsync(workspace);
+
         return workspace;
     }
 
     public async Task<bool> DeleteAsync(string periodo)
     {
-        var existing = await _workspaceRepo.GetByPeriodoAsync(periodo);
+        periodo = periodo.Trim().ToUpper();
+
+        var existing = await _repo.GetByPeriodoAsync(periodo);
         if (existing == null)
             return false;
 
-        await _workspaceRepo.DeleteAsync(periodo);
+        // Seguridad: evitar borrar periodos cerrados
+        if (existing.Estado == 1)
+            throw new Exception("No se puede eliminar un período ya cerrado.");
+
+        // También deberíamos verificar que no existan nóminas
+        var nominas = await _nominaRepo.GetByPeriodoGlobalAsync(periodo);
+        if (nominas.Any())
+            throw new Exception("No se puede eliminar un período con nóminas generadas.");
+
+        await _repo.DeleteAsync(periodo);
         return true;
     }
 
     public async Task<bool> VerificarPeriodoAbiertoAsync(string periodo)
     {
-        var workspace = await _workspaceRepo.GetByPeriodoAsync(periodo);
+        periodo = periodo.Trim().ToUpper();
 
+        var workspace = await _repo.GetByPeriodoAsync(periodo);
         if (workspace == null)
             return false;
 
-        return workspace.Estado == 0; // 0 = abierto
+        return workspace.Estado == 0;
     }
 }

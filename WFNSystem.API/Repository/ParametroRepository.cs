@@ -8,7 +8,7 @@ namespace WFNSystem.API.Repository;
 public class ParametroRepository: IParametroRepository
 {
     private readonly IDynamoDBContext _context;
-    
+
     public ParametroRepository(IDynamoDBContext context)
     {
         _context = context;
@@ -30,7 +30,7 @@ public class ParametroRepository: IParametroRepository
         return await _context.LoadAsync<Parametro>(pk, sk);
     }
     
-    public async Task<Parametro?> GetByNombreAsync(string tipoSnakeCase)
+    public async Task<IEnumerable<Parametro>> GetByTipoAsync(string tipoSnakeCase)
     {
         string pk = "PARAM#GLOBAL";
 
@@ -39,9 +39,7 @@ public class ParametroRepository: IParametroRepository
             new ScanCondition("Tipo", ScanOperator.Equal, tipoSnakeCase)
         };
 
-        var result = await _context.ScanAsync<Parametro>(conditions).GetRemainingAsync();
-
-        return result.FirstOrDefault();
+        return await _context.ScanAsync<Parametro>(conditions).GetRemainingAsync();
     }
     
     public async Task AddAsync(Parametro parametro)
