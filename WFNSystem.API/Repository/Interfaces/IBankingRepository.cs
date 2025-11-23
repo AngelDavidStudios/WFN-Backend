@@ -4,10 +4,10 @@ namespace WFNSystem.API.Repository.Interfaces;
 
 public interface IBankingRepository
 {
-    Task<IEnumerable<Banking>> GetBankingByEmpleadoIdAsync(string empleadoId);
-    Task<Banking?> GetBankingByIdAsync(string empleadoId, string bankingId);
+    Task<IEnumerable<Banking>> GetByEmpleadoAsync(string empleadoId);
+    Task<Banking?> GetByIdAsync(string empleadoId, string bankingId);
 
-    Task AddBankingAsync(Banking banking);
-    Task UpdateBankingAsync(Banking banking);
-    Task DeleteBankingAsync(string empleadoId, string bankingId);
+    Task AddAsync(Banking banking);
+    Task UpdateAsync(Banking banking);
+    Task DeleteAsync(string empleadoId, string bankingId);
 }

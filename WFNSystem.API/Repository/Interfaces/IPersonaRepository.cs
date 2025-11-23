@@ -4,8 +4,9 @@ namespace WFNSystem.API.Repository.Interfaces;
 
 public interface IPersonaRepository
 {
-    Task<IEnumerable<Persona>> GetAllAsync();
     Task<Persona?> GetByIdAsync(string personaId);
+    Task<IEnumerable<Persona>> GetAllAsync();
+
     Task AddAsync(Persona persona);
     Task UpdateAsync(Persona persona);
     Task DeleteAsync(string personaId);
