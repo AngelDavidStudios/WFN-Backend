@@ -2,18 +2,29 @@ using Amazon.DynamoDBv2.DataModel;
 
 namespace WFNSystem.API.Models;
 
-[DynamoDBTable("WFNParametro")]
+[DynamoDBTable("WFNSystem")]
 public class Parametro
 {
-    [DynamoDBHashKey("id")]
-    public string ID_Parametro { get; set; }
-    
+    // PK = PARAMETRO#GLOBAL
+    [DynamoDBHashKey]
+    public string PK { get; set; } = "PARAMETRO#GLOBAL";
+
+    // SK = PARAM#<id_parametro>
+    [DynamoDBRangeKey]
+    public string SK { get; set; } = string.Empty;
+
+    // ID lógico del parámetro
     [DynamoDBProperty]
-    public string Tipo { get; set; }
-    
+    public string ID_Parametro { get; set; } = string.Empty;
+
+    // Tipo de parámetro (Horas Extras, Gimnasio, Comisariato, Consumo Celular, etc.)
     [DynamoDBProperty]
-    public string Descripcion { get; set; }
-    
+    public string Tipo { get; set; } = string.Empty;
+
+    // Descripción del parámetro
     [DynamoDBProperty]
-    public string DateCreated { get; set; }
+    public string Descripcion { get; set; } = string.Empty;
+
+    [DynamoDBProperty]
+    public string DateCreated { get; set; } = string.Empty;
 }
