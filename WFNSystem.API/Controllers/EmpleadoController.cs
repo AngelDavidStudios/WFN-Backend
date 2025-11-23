@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using WFNSystem.API.Models;
 using WFNSystem.API.Repository.Interfaces;
+using WFNSystem.API.Services.Interfaces;
 
 namespace WFNSystem.API.Controllers;
 
@@ -8,50 +9,78 @@ namespace WFNSystem.API.Controllers;
 [ApiController]
 public class EmpleadoController: ControllerBase
 {
-    private readonly IRepository<Empleado> _empleadoRepository;
-    
-    public EmpleadoController(IRepository<Empleado> empleadoRepository)
-    {
-        _empleadoRepository = empleadoRepository;
-    }
+    private readonly IEmpleadoService _empleadoService;
 
-    [HttpGet]
-    public async Task<IActionResult> Get()
+    public EmpleadoController(IEmpleadoService empleadoService)
     {
-        var empleados = await _empleadoRepository.GetAllAsync();
+        _empleadoService = empleadoService;
+    }
+    
+    // ============================================================
+    // GET: api/empleado
+    // ============================================================
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var empleados = await _empleadoService.GetAllAsync();
         return Ok(empleados);
     }
 
+    // ============================================================
+    // GET: api/empleado/{id}
+    // ============================================================
     [HttpGet("{id}")]
-    public async Task<IActionResult> Get(string id)
+    public async Task<IActionResult> GetById(string id)
     {
-        var empleado = await _empleadoRepository.GetByIdAsync(id);
+        var empleado = await _empleadoService.GetByIdAsync(id);
+        if (empleado == null)
+            return NotFound("Empleado no encontrado.");
+
         return Ok(empleado);
     }
 
+    // ============================================================
+    // POST: api/empleado
+    // ============================================================
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] Empleado empleado)
+    public async Task<IActionResult> Create([FromBody] Empleado empleado)
     {
-        if (empleado.ID_Empleado != null)
-        {
-            empleado.ID_Empleado = null;
-        }
+        if (empleado == null)
+            return BadRequest("Datos inválidos.");
 
-        await _empleadoRepository.AddAsync(empleado);
-        return Ok("Empleado created successfully");
+        var created = await _empleadoService.CreateAsync(empleado);
+        return CreatedAtAction(nameof(GetById),
+            new { id = created.ID_Empleado },
+            created);
     }
 
+    // ============================================================
+    // PUT: api/empleado/{id}
+    // ============================================================
     [HttpPut("{id}")]
-    public async Task<IActionResult> Put(string id, [FromBody] Empleado empleado)
+    public async Task<IActionResult> Update(string id, [FromBody] Empleado empleado)
     {
-        await _empleadoRepository.UpdateAsync(id, empleado);
-        return Ok("Empleado updated successfully");
+        var exists = await _empleadoService.GetByIdAsync(id);
+        if (exists == null)
+            return NotFound("Empleado no encontrado.");
+
+        empleado.ID_Empleado = id;
+
+        var updated = await _empleadoService.UpdateAsync(empleado);
+        return Ok(updated);
     }
 
+    // ============================================================
+    // DELETE: api/empleado/{id}
+    // ============================================================
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        await _empleadoRepository.DeleteAsync(id);
-        return Ok("Empleado deleted successfully");
+        var deleted = await _empleadoService.DeleteAsync(id);
+
+        if (!deleted) 
+            return NotFound("No existe el empleado.");
+
+        return Ok(new { message = "Empleado eliminado correctamente." });
     }
 }

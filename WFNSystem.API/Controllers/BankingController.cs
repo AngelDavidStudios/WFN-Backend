@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using WFNSystem.API.Models;
 using WFNSystem.API.Repository.Interfaces;
+using WFNSystem.API.Services.Interfaces;
 
 namespace WFNSystem.API.Controllers;
 
@@ -8,49 +9,69 @@ namespace WFNSystem.API.Controllers;
 [ApiController]
 public class BankingController: ControllerBase
 {
-    private readonly IRepository<Banking> _bankingRepository;
+    private readonly IBankingService _bankingService;
+
+    public BankingController(IBankingService bankingService)
+    {
+        _bankingService = bankingService;
+    }
     
-    public BankingController(IRepository<Banking> bankingRepository)
+    // ============================================================
+    // GET: api/banking/empleado/{empleadoId}
+    // ============================================================
+    [HttpGet("empleado/{empleadoId}")]
+    public async Task<IActionResult> GetByEmpleado(string empleadoId)
     {
-        _bankingRepository = bankingRepository;
+        var cuentas = await _bankingService.GetByEmpleadoAsync(empleadoId);
+
+        if (cuentas == null || !cuentas.Any())
+            return NotFound("El empleado no tiene cuentas bancarias registradas.");
+
+        return Ok(cuentas);
     }
 
-    [HttpGet]
-    public async Task<IActionResult> Get()
+    // ============================================================
+    // POST: api/banking/empleado/{empleadoId}
+    // ============================================================
+    [HttpPost("empleado/{empleadoId}")]
+    public async Task<IActionResult> Create(string empleadoId, [FromBody] Banking banking)
     {
-        var bankings = await _bankingRepository.GetAllAsync();
-        return Ok(bankings);
+        if (banking == null)
+            return BadRequest("Datos inválidos.");
+
+        var created = await _bankingService.CreateAsync(empleadoId, banking);
+
+        return CreatedAtAction(nameof(GetByEmpleado), 
+            new { empleadoId = empleadoId }, created);
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> Get(string id)
+    // ============================================================
+    // PUT: api/banking/{bankId}/empleado/{empleadoId}
+    // ============================================================
+    [HttpPut("{bankId}/empleado/{empleadoId}")]
+    public async Task<IActionResult> Update(string bankId, string empleadoId, [FromBody] Banking banking)
     {
-        var banking = await _bankingRepository.GetByIdAsync(id);
-        return Ok(banking);
+        var exists = await _bankingService.GetByIdAsync(empleadoId, bankId);
+        if (exists == null)
+            return NotFound("La cuenta bancaria no existe para este empleado.");
+
+        banking.ID_Banking = bankId;
+
+        var updated = await _bankingService.UpdateAsync(empleadoId, banking);
+        return Ok(updated);
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Post([FromBody] Banking banking)
+    // ============================================================
+    // DELETE: api/banking/{bankId}/empleado/{empleadoId}
+    // ============================================================
+    [HttpDelete("{bankId}/empleado/{empleadoId}")]
+    public async Task<IActionResult> Delete(string bankId, string empleadoId)
     {
-        if (banking.ID_Banking != null)
-        {
-            banking.ID_Banking = null;
-        }
-        await _bankingRepository.AddAsync(banking);
-        return Ok("Banking created successfully");
-    }
+        var deleted = await _bankingService.DeleteAsync(empleadoId, bankId);
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Put(string id, [FromBody] Banking banking)
-    {
-        await _bankingRepository.UpdateAsync(id, banking);
-        return Ok("Banking updated successfully");
-    }
+        if (!deleted)
+            return NotFound("No existe la cuenta bancaria para este empleado.");
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(string id)
-    {
-        await _bankingRepository.DeleteAsync(id);
-        return Ok("Banking deleted successfully");
+        return Ok(new { message = "Cuenta bancaria eliminada correctamente." });
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using WFNSystem.API.Models;
 using WFNSystem.API.Repository.Interfaces;
+using WFNSystem.API.Services.Interfaces;
 
 namespace WFNSystem.API.Controllers;
 
@@ -8,50 +9,73 @@ namespace WFNSystem.API.Controllers;
 [ApiController]
 public class PersonaController: ControllerBase
 {
-    private readonly IRepository<Persona> _personaRepository;
-    
-    public PersonaController(IRepository<Persona> personaRepository)
-    {
-        _personaRepository = personaRepository;
-    }
+    private readonly IPersonaService _personaService;
 
-    [HttpGet]
-    public async Task<IActionResult> Get()
+    public PersonaController(IPersonaService personaService)
     {
-        var personas = await _personaRepository.GetAllAsync();
+        _personaService = personaService;
+    }
+    
+    // ============================================================
+    // GET: api/persona
+    // ============================================================
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var personas = await _personaService.GetAllAsync();
         return Ok(personas);
     }
-
+    
+    // ============================================================
+    // GET: api/persona/{id}
+    // ============================================================
     [HttpGet("{id}")]
-    public async Task<IActionResult> Get(string id)
+    public async Task<IActionResult> GetById(string id)
     {
-        var persona = await _personaRepository.GetByIdAsync(id);
+        var persona = await _personaService.GetByIdAsync(id);
+        if (persona == null) return NotFound("Persona no encontrada.");
+
         return Ok(persona);
     }
-
+    
+    // ============================================================
+    // POST: api/persona
+    // ============================================================
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] Persona persona)
+    public async Task<IActionResult> Create([FromBody] Persona persona)
     {
-        if (persona.ID_Persona != null)
-        {
-            persona.ID_Persona = null;
-        }
+        if (persona == null)
+            return BadRequest("Datos inválidos.");
 
-        await _personaRepository.AddAsync(persona);
-        return Ok("Persona created successfully");
+        var created = await _personaService.CreateAsync(persona);
+        return CreatedAtAction(nameof(GetById), new { id = created.ID_Persona }, created);
     }
-
+    
+    // ============================================================
+    // PUT: api/persona/{id}
+    // ============================================================
     [HttpPut("{id}")]
-    public async Task<IActionResult> Put(string id, [FromBody] Persona persona)
+    public async Task<IActionResult> Update(string id, [FromBody] Persona persona)
     {
-        await _personaRepository.UpdateAsync(id, persona);
-        return Ok("Persona updated successfully");
-    }
+        var exists = await _personaService.GetByIdAsync(id);
+        if (exists == null) return NotFound("Persona no encontrada.");
 
+        persona.ID_Persona = id;
+        var updated = await _personaService.UpdateAsync(persona);
+
+        return Ok(updated);
+    }
+    
+    // ============================================================
+    // DELETE: api/persona/{id}
+    // ============================================================
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        await _personaRepository.DeleteAsync(id);
-        return Ok("Persona deleted successfully");
+        var deleted = await _personaService.DeleteAsync(id);
+
+        if (!deleted) return NotFound("No existe la persona.");
+
+        return Ok(new { message = "Persona eliminada correctamente." });
     }
 }

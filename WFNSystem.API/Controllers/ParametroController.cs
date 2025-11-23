@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using WFNSystem.API.Models;
 using WFNSystem.API.Repository.Interfaces;
+using WFNSystem.API.Services.Interfaces;
 
 namespace WFNSystem.API.Controllers;
 
@@ -8,50 +9,79 @@ namespace WFNSystem.API.Controllers;
 [ApiController]
 public class ParametroController: ControllerBase
 {
-    private readonly IRepository<Parametro> _parametroRepository;
-    
-    public ParametroController(IRepository<Parametro> parametroRepository)
-    {
-        _parametroRepository = parametroRepository;
-    }
+    private readonly IParametroService _parametroService;
 
-    [HttpGet]
-    public async Task<IActionResult> Get()
+    public ParametroController(IParametroService parametroService)
     {
-        var parametros = await _parametroRepository.GetAllAsync();
+        _parametroService = parametroService;
+    }
+    
+    // ============================================================
+    // GET: api/parametro
+    // ============================================================
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var parametros = await _parametroService.GetAllAsync();
         return Ok(parametros);
     }
 
+    // ============================================================
+    // GET: api/parametro/{id}
+    // ============================================================
     [HttpGet("{id}")]
-    public async Task<IActionResult> Get(string id)
+    public async Task<IActionResult> GetById(string id)
     {
-        var parametro = await _parametroRepository.GetByIdAsync(id);
+        var parametro = await _parametroService.GetByIdAsync(id);
+        if (parametro == null)
+            return NotFound("Parámetro no encontrado.");
+
         return Ok(parametro);
     }
 
+    // ============================================================
+    // POST: api/parametro
+    // ============================================================
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] Parametro parametro)
+    public async Task<IActionResult> Create([FromBody] Parametro parametro)
     {
-        if (parametro.ID_Parametro != null)
-        {
-            parametro.ID_Parametro = null;
-        }
+        if (parametro == null)
+            return BadRequest("Datos inválidos.");
 
-        await _parametroRepository.AddAsync(parametro);
-        return Ok("Parametro created successfully");
+        var created = await _parametroService.CreateAsync(parametro);
+
+        return CreatedAtAction(nameof(GetById),
+            new { id = created.ID_Parametro }, created);
     }
 
+    // ============================================================
+    // PUT: api/parametro/{id}
+    // ============================================================
     [HttpPut("{id}")]
-    public async Task<IActionResult> Put(string id, [FromBody] Parametro parametro)
+    public async Task<IActionResult> Update(string id, [FromBody] Parametro parametro)
     {
-        await _parametroRepository.UpdateAsync(id, parametro);
-        return Ok("Parametro updated successfully");
+        var exists = await _parametroService.GetByIdAsync(id);
+
+        if (exists == null)
+            return NotFound("Parámetro no encontrado.");
+
+        parametro.ID_Parametro = id;
+
+        var updated = await _parametroService.UpdateAsync(parametro);
+        return Ok(updated);
     }
 
+    // ============================================================
+    // DELETE: api/parametro/{id}
+    // ============================================================
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        await _parametroRepository.DeleteAsync(id);
-        return Ok("Parametro deleted successfully");
+        var deleted = await _parametroService.DeleteAsync(id);
+
+        if (!deleted)
+            return NotFound("No existe el parámetro.");
+
+        return Ok(new { message = "Parámetro eliminado correctamente." });
     }
 }

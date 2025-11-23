@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using WFNSystem.API.Models;
 using WFNSystem.API.Repository.Interfaces;
+using WFNSystem.API.Services.Interfaces;
 
 namespace WFNSystem.API.Controllers;
 
@@ -8,50 +9,75 @@ namespace WFNSystem.API.Controllers;
 [ApiController]
 public class DepartamentoController: ControllerBase
 {
-    private readonly IRepository<Departamento> _departamentoRepository;
+    private readonly IDepartamentoService _departamentoService;
+
+    public DepartamentoController(IDepartamentoService departamentoService)
+    {
+        _departamentoService = departamentoService;
+    }
     
-    public DepartamentoController(IRepository<Departamento> departamentoRepository)
-    {
-        _departamentoRepository = departamentoRepository;
-    }
-
+    // ============================================================
+    // GET: api/departamento
+    // ============================================================
     [HttpGet]
-    public async Task<IActionResult> Get()
+    public async Task<IActionResult> GetAll()
     {
-        var departamentos = await _departamentoRepository.GetAllAsync();
-        return Ok(departamentos);
+        var result = await _departamentoService.GetAllAsync();
+        return Ok(result);
     }
 
+    // ============================================================
+    // GET: api/departamento/{id}
+    // ============================================================
     [HttpGet("{id}")]
-    public async Task<IActionResult> Get(string id)
+    public async Task<IActionResult> GetById(string id)
     {
-        var departamento = await _departamentoRepository.GetByIdAsync(id);
-        return Ok(departamento);
+        var dep = await _departamentoService.GetByIdAsync(id);
+        if (dep == null)
+            return NotFound("Departamento no encontrado.");
+
+        return Ok(dep);
     }
 
+    // ============================================================
+    // POST: api/departamento
+    // ============================================================
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] Departamento departamento)
+    public async Task<IActionResult> Create([FromBody] Departamento dep)
     {
-        if (departamento.ID_Departamento != null)
-        {
-            departamento.ID_Departamento = null;
-        }
+        if (dep == null)
+            return BadRequest("Datos inválidos.");
 
-        await _departamentoRepository.AddAsync(departamento);
-        return Ok("Departamento created successfully");
+        var created = await _departamentoService.CreateAsync(dep);
+        return CreatedAtAction(nameof(GetById), new { id = created.ID_Departamento }, created);
     }
 
+    // ============================================================
+    // PUT: api/departamento/{id}
+    // ============================================================
     [HttpPut("{id}")]
-    public async Task<IActionResult> Put(string id, [FromBody] Departamento departamento)
+    public async Task<IActionResult> Update(string id, [FromBody] Departamento dep)
     {
-        await _departamentoRepository.UpdateAsync(id, departamento);
-        return Ok("Departamento updated successfully");
+        var exists = await _departamentoService.GetByIdAsync(id);
+        if (exists == null)
+            return NotFound("Departamento no encontrado.");
+
+        dep.ID_Departamento = id;
+        var updated = await _departamentoService.UpdateAsync(dep);
+
+        return Ok(updated);
     }
 
+    // ============================================================
+    // DELETE: api/departamento/{id}
+    // ============================================================
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        await _departamentoRepository.DeleteAsync(id);
-        return Ok("Departamento deleted successfully");
+        var deleted = await _departamentoService.DeleteAsync(id);
+        if (!deleted)
+            return NotFound("No existe el departamento.");
+
+        return Ok(new { message = "Departamento eliminado correctamente." });
     }
 }
