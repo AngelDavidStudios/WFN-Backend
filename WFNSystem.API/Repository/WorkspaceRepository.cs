@@ -16,44 +16,34 @@ public class WorkspaceRepository: IWorkspaceRepository
     
     public async Task<IEnumerable<WorkspaceNomina>> GetAllAsync()
     {
-        var conditions = new List<ScanCondition>
-        {
-            new ScanCondition("SK", ScanOperator.Equal, "META#WS")
-        };
+        string pk = "WORKSPACE#GLOBAL";
 
-        return await _context
-            .ScanAsync<WorkspaceNomina>(conditions)
-            .GetRemainingAsync();
+        var query = _context.QueryAsync<WorkspaceNomina>(pk);
+        return await query.GetRemainingAsync();
     }
-
+    
     public async Task<WorkspaceNomina?> GetByPeriodoAsync(string periodo)
     {
-        string pk = $"WS#{periodo}";
-        string sk = "META#WS";
+        string pk = "WORKSPACE#GLOBAL";
+        string sk = $"WORK#{periodo}";
 
         return await _context.LoadAsync<WorkspaceNomina>(pk, sk);
     }
-
+    
     public async Task AddAsync(WorkspaceNomina workspace)
     {
-        workspace.PK = $"WS#{workspace.Periodo}";
-        workspace.SK = "META#WS";
-
         await _context.SaveAsync(workspace);
     }
 
     public async Task UpdateAsync(WorkspaceNomina workspace)
     {
-        workspace.PK = $"WS#{workspace.Periodo}";
-        workspace.SK = "META#WS";
-
         await _context.SaveAsync(workspace);
     }
 
     public async Task DeleteAsync(string periodo)
     {
-        string pk = $"WS#{periodo}";
-        string sk = "META#WS";
+        string pk = "WORKSPACE#GLOBAL";
+        string sk = $"WORK#{periodo}";
 
         await _context.DeleteAsync<WorkspaceNomina>(pk, sk);
     }

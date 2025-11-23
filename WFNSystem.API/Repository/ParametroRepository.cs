@@ -1,4 +1,5 @@
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 using WFNSystem.API.Models;
 using WFNSystem.API.Repository.Interfaces;
 
@@ -15,51 +16,49 @@ public class ParametroRepository: IParametroRepository
     
     public async Task<IEnumerable<Parametro>> GetAllAsync()
     {
-        string pk = "PARAMETRO#GLOBAL";
+        string pk = "PARAM#GLOBAL";
 
-        return await _context
-            .QueryAsync<Parametro>(pk)
-            .GetRemainingAsync();
+        var query = _context.QueryAsync<Parametro>(pk);
+        return await query.GetRemainingAsync();
     }
-
+    
     public async Task<Parametro?> GetByIdAsync(string parametroId)
     {
-        string pk = "PARAMETRO#GLOBAL";
+        string pk = "PARAM#GLOBAL";
         string sk = $"PARAM#{parametroId}";
 
         return await _context.LoadAsync<Parametro>(pk, sk);
     }
+    
+    public async Task<Parametro?> GetByNombreAsync(string tipoSnakeCase)
+    {
+        string pk = "PARAM#GLOBAL";
 
+        var conditions = new List<ScanCondition>
+        {
+            new ScanCondition("Tipo", ScanOperator.Equal, tipoSnakeCase)
+        };
+
+        var result = await _context.ScanAsync<Parametro>(conditions).GetRemainingAsync();
+
+        return result.FirstOrDefault();
+    }
+    
     public async Task AddAsync(Parametro parametro)
     {
-        parametro.PK = "PARAMETRO#GLOBAL";
-        parametro.SK = $"PARAM#{parametro.ID_Parametro}";
-
         await _context.SaveAsync(parametro);
     }
-
+    
     public async Task UpdateAsync(Parametro parametro)
     {
-        parametro.PK = "PARAMETRO#GLOBAL";
-        parametro.SK = $"PARAM#{parametro.ID_Parametro}";
-
         await _context.SaveAsync(parametro);
     }
-
+    
     public async Task DeleteAsync(string parametroId)
     {
-        string pk = "PARAMETRO#GLOBAL";
+        string pk = "PARAM#GLOBAL";
         string sk = $"PARAM#{parametroId}";
 
         await _context.DeleteAsync<Parametro>(pk, sk);
-    }
-
-    public async Task<IEnumerable<Parametro>> GetByTipoAsync(string tipo)
-    {
-        string pk = "PARAMETRO#GLOBAL";
-
-        var results = await _context.QueryAsync<Parametro>(pk).GetRemainingAsync();
-
-        return results.Where(p => p.Tipo.Equals(tipo, StringComparison.OrdinalIgnoreCase));
     }
 }

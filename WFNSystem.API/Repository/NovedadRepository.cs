@@ -1,4 +1,5 @@
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 using WFNSystem.API.Models;
 using WFNSystem.API.Repository.Interfaces;
 
@@ -13,56 +14,46 @@ public class NovedadRepository: INovedadRepository
         _context = context;
     }
     
-    public async Task<IEnumerable<Novedad>> GetNovedadesByEmpleadoAsync(string empleadoId)
+    public async Task<IEnumerable<Novedad>> GetByEmpleadoAsync(string empleadoId)
     {
         string pk = $"EMP#{empleadoId}";
 
-        var results = await _context
-            .QueryAsync<Novedad>(pk)
-            .GetRemainingAsync();
-
-        return results.Where(n => n.SK.StartsWith("NOV#"));
+        var result = await _context.QueryAsync<Novedad>(pk).GetRemainingAsync();
+        return result;
     }
-
-    public async Task<IEnumerable<Novedad>> GetNovedadesByPeriodoAsync(string empleadoId, string periodo)
+    
+    public async Task<IEnumerable<Novedad>> GetByPeriodoAsync(string empleadoId, string periodo)
     {
         string pk = $"EMP#{empleadoId}";
+        string skPrefix = $"PERIODO#{periodo}#";
 
-        var results = await _context
-            .QueryAsync<Novedad>(pk)
-            .GetRemainingAsync();
+        var query = _context.QueryAsync<Novedad>(pk, QueryOperator.BeginsWith, new[] { skPrefix });
 
-        return results.Where(n => n.FechaIngresada.StartsWith(periodo));
+        return await query.GetRemainingAsync();
     }
-
-    public async Task<Novedad?> GetByIdAsync(string empleadoId, string novedadId)
+    
+    public async Task<Novedad?> GetByIdAsync(string empleadoId, string novedadId, string periodo)
     {
         string pk = $"EMP#{empleadoId}";
-        string sk = $"NOV#{novedadId}";
+        string sk = $"PERIODO#{periodo}#NOVEDAD#{novedadId}";
 
         return await _context.LoadAsync<Novedad>(pk, sk);
     }
-
+    
     public async Task AddAsync(Novedad novedad)
     {
-        novedad.PK = $"EMP#{novedad.ID_Empleado}";
-        novedad.SK = $"NOV#{novedad.ID_Novedad}";
-
         await _context.SaveAsync(novedad);
     }
 
     public async Task UpdateAsync(Novedad novedad)
     {
-        novedad.PK = $"EMP#{novedad.ID_Empleado}";
-        novedad.SK = $"NOV#{novedad.ID_Novedad}";
-
         await _context.SaveAsync(novedad);
     }
-
-    public async Task DeleteAsync(string empleadoId, string novedadId)
+    
+    public async Task DeleteAsync(string empleadoId, string periodo, string novedadId)
     {
         string pk = $"EMP#{empleadoId}";
-        string sk = $"NOV#{novedadId}";
+        string sk = $"PERIODO#{periodo}#NOVEDAD#{novedadId}";
 
         await _context.DeleteAsync<Novedad>(pk, sk);
     }

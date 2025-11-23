@@ -13,48 +13,48 @@ public class EmpleadoRepository: IEmpleadoRepository
         _context = context;
     }
     
+    private string BuildPK(string empleadoId) => $"EMP#{empleadoId}";
+    private const string SK = "META#EMP";
+
+    public async Task<Empleado?> GetByIdAsync(string empleadoId)
+    {
+        return await _context.LoadAsync<Empleado>(BuildPK(empleadoId), SK);
+    }
+
     public async Task<IEnumerable<Empleado>> GetAllAsync()
     {
         var conditions = new List<ScanCondition>
         {
-            new ScanCondition("SK", ScanOperator.Equal, "META#EMP")
+            new ScanCondition("PK", ScanOperator.BeginsWith, "EMP#")
         };
 
         return await _context.ScanAsync<Empleado>(conditions).GetRemainingAsync();
     }
-    
-    public async Task<Empleado?> GetByIdAsync(string empleadoId)
+
+    public async Task<IEnumerable<Empleado>> GetByDepartamentoAsync(string departamentoId)
     {
-        string pk = $"EMP#{empleadoId}";
-        string sk = "META#EMP";
-        return await _context.LoadAsync<Empleado>(pk, sk);
-    }
-    
-    public async Task AddAsync(Empleado empleado)
-    {
-        empleado.PK = $"EMP#{empleado.ID_Empleado}";
-        empleado.SK = "META#EMP";
-        await _context.SaveAsync(empleado);
-    }
-    
-    public async Task UpdateAsync(Empleado empleado)
-    {
-        empleado.PK = $"EMP#{empleado.ID_Empleado}";
-        empleado.SK = "META#EMP";
-        await _context.SaveAsync(empleado);
-    }
-    
-    public async Task DeleteAsync(string empleadoId)
-    {
-        string pk = $"EMP#{empleadoId}";
-        string sk = "META#EMP";
-        await _context.DeleteAsync<Empleado>(pk, sk);
+        var allEmployees = await GetAllAsync();
+        return allEmployees.Where(e => e.ID_Departamento == departamentoId);
     }
 
-    public async Task<object?> GetEmpleadoFullAsync(string empleadoId)
+    public async Task AddAsync(Empleado empleado)
     {
-        string pk = $"EMP#{empleadoId}";
-        var results = await _context.QueryAsync<object>(pk).GetRemainingAsync();
-        return results;
+        empleado.PK = BuildPK(empleado.ID_Empleado);
+        empleado.SK = SK;
+
+        await _context.SaveAsync(empleado);
+    }
+
+    public async Task UpdateAsync(Empleado empleado)
+    {
+        empleado.PK = BuildPK(empleado.ID_Empleado);
+        empleado.SK = SK;
+
+        await _context.SaveAsync(empleado);
+    }
+
+    public async Task DeleteAsync(string empleadoId)
+    {
+        await _context.DeleteAsync<Empleado>(BuildPK(empleadoId), SK);
     }
 }

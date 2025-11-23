@@ -14,75 +14,48 @@ public class NominaRepository: INominaRepository
         _context = context;
     }
     
-    // ======================================================
-    // OBTENER UNA NÓMINA ESPECÍFICA (PERIODO + EMPLEADO)
-    // ======================================================
-    public async Task<Nomina?> GetAsync(string periodo, string empleadoId)
+    public async Task<Nomina?> GetByPeriodoAsync(string empleadoId, string periodo)
     {
-        string pk = $"NOMINA#{periodo}";
-        string sk = $"EMPLEADO#{empleadoId}";
+        string pk = $"EMP#{empleadoId}";
+        string sk = $"NOMINA#{periodo}";
 
         return await _context.LoadAsync<Nomina>(pk, sk);
     }
     
-    // ======================================================
-    // OBTENER TODAS LAS NÓMINAS DEL PERÍODO
-    // ======================================================
-    public async Task<IEnumerable<Nomina>> GetByPeriodoAsync(string periodo)
-    {
-        string pk = $"NOMINA#{periodo}";
-
-        return await _context.QueryAsync<Nomina>(pk).GetRemainingAsync();
-    }
-    
-    // ======================================================
-    // OBTENER TODAS LAS NÓMINAS DE UN EMPLEADO (USANDO GSI)
-    // Requiere un GSI con:
-    // PartitionKey = SK  |  SortKey = PK
-    // ======================================================
     public async Task<IEnumerable<Nomina>> GetByEmpleadoAsync(string empleadoId)
     {
-        string sk = $"EMPLEADO#{empleadoId}";
+        string pk = $"EMP#{empleadoId}";
 
-        var config = new DynamoDBOperationConfig
-        {
-            IndexName = "GSI_SK" // <- Debe existir en DynamoDB
-        };
-
-        return await _context.QueryAsync<Nomina>(sk, config).GetRemainingAsync();
+        var query = _context.QueryAsync<Nomina>(pk);
+        return await query.GetRemainingAsync();
     }
     
-    // ======================================================
-    // CREAR NUEVA NÓMINA
-    // ======================================================
+    public async Task<IEnumerable<Nomina>> GetByPeriodoGlobalAsync(string periodo)
+    {
+        string skPrefix = $"NOMINA#{periodo}";
+
+        var conditions = new List<ScanCondition>
+        {
+            new ScanCondition("SK", ScanOperator.BeginsWith, skPrefix)
+        };
+
+        return await _context.ScanAsync<Nomina>(conditions).GetRemainingAsync();
+    }
+    
     public async Task AddAsync(Nomina nomina)
     {
-        // PK
-        nomina.PK = $"NOMINA#{nomina.Periodo}";
-        // SK
-        nomina.SK = $"EMPLEADO#{nomina.ID_Empleado}";
-
-        nomina.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-dd");
-
         await _context.SaveAsync(nomina);
     }
 
-    // ======================================================
-    // UPDATE (OVERWRITE)
-    // ======================================================
     public async Task UpdateAsync(Nomina nomina)
     {
-        // En DynamoDB SaveAsync actúa como insert/update.
         await _context.SaveAsync(nomina);
     }
 
-    // ======================================================
-    // DELETE
-    // ======================================================
-    public async Task DeleteAsync(string periodo, string empleadoId)
+    public async Task DeleteAsync(string empleadoId, string periodo)
     {
-        string pk = $"NOMINA#{periodo}";
-        string sk = $"EMPLEADO#{empleadoId}";
+        string pk = $"EMP#{empleadoId}";
+        string sk = $"NOMINA#{periodo}";
 
         await _context.DeleteAsync<Nomina>(pk, sk);
     }

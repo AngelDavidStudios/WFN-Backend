@@ -14,45 +14,42 @@ public class DepartamentoRepository: IDepartamentoRepository
         _context = context;
     }
     
+    private string BuildPK(string departamentoId) => $"DEP#{departamentoId}";
+    private const string SK = "META#DEP";
+
+    public async Task<Departamento?> GetByIdAsync(string departamentoId)
+    {
+        return await _context.LoadAsync<Departamento>(BuildPK(departamentoId), SK);
+    }
+
     public async Task<IEnumerable<Departamento>> GetAllAsync()
     {
         var conditions = new List<ScanCondition>
         {
-            new ScanCondition("SK", ScanOperator.Equal, "META#DEP")
+            new ScanCondition("PK", ScanOperator.BeginsWith, "DEP#")
         };
 
         return await _context.ScanAsync<Departamento>(conditions).GetRemainingAsync();
     }
 
-    public async Task<Departamento?> GetByIdAsync(string deptoId)
+    public async Task AddAsync(Departamento departamento)
     {
-        string pk = $"DEP#{deptoId}";
-        string sk = "META#DEP";
+        departamento.PK = BuildPK(departamento.ID_Departamento);
+        departamento.SK = SK;
 
-        return await _context.LoadAsync<Departamento>(pk, sk);
+        await _context.SaveAsync(departamento);
     }
 
-    public async Task AddAsync(Departamento depto)
+    public async Task UpdateAsync(Departamento departamento)
     {
-        depto.PK = $"DEP#{depto.ID_Departamento}";
-        depto.SK = "META#DEP";
+        departamento.PK = BuildPK(departamento.ID_Departamento);
+        departamento.SK = SK;
 
-        await _context.SaveAsync(depto);
+        await _context.SaveAsync(departamento);
     }
 
-    public async Task UpdateAsync(Departamento depto)
+    public async Task DeleteAsync(string departamentoId)
     {
-        depto.PK = $"DEP#{depto.ID_Departamento}";
-        depto.SK = "META#DEP";
-
-        await _context.SaveAsync(depto);
-    }
-
-    public async Task DeleteAsync(string deptoId)
-    {
-        string pk = $"DEP#{deptoId}";
-        string sk = "META#DEP";
-
-        await _context.DeleteAsync<Departamento>(pk, sk);
+        await _context.DeleteAsync<Departamento>(BuildPK(departamentoId), SK);
     }
 }
