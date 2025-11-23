@@ -5,26 +5,35 @@ namespace WFNSystem.API.Models;
 [DynamoDBTable("WFNSystem")]
 public class Parametro
 {
-    // PK = PARAMETRO#GLOBAL
+    // PK fijo para agrupar todos los parámetros
     [DynamoDBHashKey]
-    public string PK { get; set; } = "PARAMETRO#GLOBAL";
+    public string PK { get; set; } = "PARAMETRO";
 
     // SK = PARAM#<id_parametro>
     [DynamoDBRangeKey]
     public string SK { get; set; } = string.Empty;
 
-    // ID lógico del parámetro
+    // Identificador único lógico
     [DynamoDBProperty]
     public string ID_Parametro { get; set; } = string.Empty;
 
-    // Tipo de parámetro (Horas Extras, Gimnasio, Comisariato, Consumo Celular, etc.)
+    // Nombre normalizado en SNAKE_CASE
+    [DynamoDBProperty]
+    public string Nombre { get; set; } = string.Empty;
+
+    // Tipo de parámetro: INGRESO / EGRESO / PROVISION
     [DynamoDBProperty]
     public string Tipo { get; set; } = string.Empty;
 
-    // Descripción del parámetro
+    // Tipo de cálculo: SIMPLE / PORCENTAJE / HORAS_EXTRAS / PRESTAMO...
+    [DynamoDBProperty]
+    public string TipoCalculo { get; set; } = string.Empty;
+
+    // Descripción opcional para panel administrativo
     [DynamoDBProperty]
     public string Descripcion { get; set; } = string.Empty;
 
+    // Auditoría
     [DynamoDBProperty]
-    public string DateCreated { get; set; } = string.Empty;
+    public DateTime DateCreated { get; set; }
 }

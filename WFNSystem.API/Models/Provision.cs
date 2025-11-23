@@ -9,11 +9,11 @@ public class Provision
     [DynamoDBHashKey]
     public string PK { get; set; } = string.Empty;
 
-    // SK = PROV#<id_provision>
+    // SK = PROV#<tipo>#<periodo>
     [DynamoDBRangeKey]
     public string SK { get; set; } = string.Empty;
 
-    // Identificador lógico de la provisión
+    // Id lógico interno (por referencia)
     [DynamoDBProperty]
     public string ID_Provision { get; set; } = string.Empty;
 
@@ -21,30 +21,31 @@ public class Provision
     [DynamoDBProperty]
     public string ID_Empleado { get; set; } = string.Empty;
 
-    // Tipo de provisión (ej: "DECIMO_TERCERO", "VACACIONES", "IESS_PATRONAL")
+    // Tipo de provisión (DECIMO_TERCERO, DECIMO_CUARTO, FONDO_RESERVA, VACACIONES)
     [DynamoDBProperty]
     public string TipoProvision { get; set; } = string.Empty;
 
-    // Ej. "2025-11"
+    // Periodo YYYY-MM
     [DynamoDBProperty]
     public string Periodo { get; set; } = string.Empty;
 
-    // Valor mensual generado para esta provisión
+    // Valor mensual calculado según salario
     [DynamoDBProperty]
     public decimal ValorMensual { get; set; }
 
-    // Acumulado histórico en el año
+    // Suma total acumulada hasta este periodo
     [DynamoDBProperty]
     public decimal Acumulado { get; set; }
 
-    // Total actual (ej: ValorMensual + Acumulado)
+    // Valor total pagado cuando se transfiere
     [DynamoDBProperty]
     public decimal Total { get; set; }
 
-    // Indica si ya fue transferido a una nómina
+    // TRUE si ya se pagó esta provisión en el periodo correspondiente
     [DynamoDBProperty]
     public bool IsTransferred { get; set; }
-    
+
+    // Fecha de cálculo
     [DynamoDBProperty]
-    public string DetalleCalculo { get; set; } = string.Empty;
+    public string FechaCalculo { get; set; } = string.Empty;
 }

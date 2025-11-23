@@ -5,7 +5,7 @@ namespace WFNSystem.API.Models;
 [DynamoDBTable("WFNSystem")]
 public class Banking
 {
-    // PK = EMP#ID_Persona
+    // PK = EMPLEADO#<ID_Empleado>
     [DynamoDBHashKey]
     public string PK { get; set; } = string.Empty;    
     
@@ -34,4 +34,7 @@ public class Banking
     
     [DynamoDBProperty]
     public string Sucursal { get; set; } = string.Empty;
+    
+    [DynamoDBProperty]
+    public DateTime DateCreated { get; set; }
 }
