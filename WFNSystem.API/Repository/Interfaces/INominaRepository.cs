@@ -2,8 +2,13 @@ using WFNSystem.API.Models;
 
 namespace WFNSystem.API.Repository.Interfaces;
 
-public interface INominaRepository: IRepository<Nomina>
+public interface INominaRepository
 {
-    Task<IEnumerable<Nomina>> GetByPeriodoAsync(string periodo);
-    Task<IEnumerable<Nomina>> GetByEmpleadoAsync(string empleadoId);
+    Task<Nomina?> GetNominaAsync(string empleadoId, string periodo);
+    Task<IEnumerable<Nomina>> GetNominasByEmpleadoAsync(string empleadoId);
+    Task<IEnumerable<Nomina>> GetNominasByPeriodoAsync(string periodo);
+
+    Task AddAsync(Nomina nomina);
+    Task UpdateAsync(Nomina nomina);
+    Task DeleteAsync(string empleadoId, string periodo);
 }
