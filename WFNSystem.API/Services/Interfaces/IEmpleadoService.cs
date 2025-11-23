@@ -10,7 +10,4 @@ public interface IEmpleadoService
     Task<Empleado> CreateAsync(Empleado empleado);
     Task<Empleado> UpdateAsync(Empleado empleado);
     Task<bool> DeleteAsync(string empleadoId);
-
-    // Empleado + Persona + Departamento + BankingAccounts
-    Task<object?> GetEmpleadoFullAsync(string empleadoId);
 }

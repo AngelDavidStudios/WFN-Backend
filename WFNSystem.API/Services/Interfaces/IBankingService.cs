@@ -4,10 +4,11 @@ namespace WFNSystem.API.Services.Interfaces;
 
 public interface IBankingService
 {
-    Task<IEnumerable<Banking>> GetByEmpleadoAsync(string empleadoId);
-    Task<Banking?> GetByIdAsync(string empleadoId, string bankingId);
+    Task<IEnumerable<Parametro>> GetAllAsync();
+    Task<Parametro?> GetByIdAsync(string parametroId);
+    Task<Parametro?> GetByNombreAsync(string tipoSnakeCase);
 
-    Task<Banking> CreateAsync(string empleadoId, Banking banking);
-    Task<Banking> UpdateAsync(string empleadoId, Banking banking);
-    Task<bool> DeleteAsync(string empleadoId, string bankingId);
+    Task<Parametro> CreateAsync(Parametro parametro);
+    Task<Parametro> UpdateAsync(Parametro parametro);
+    Task<bool> DeleteAsync(string parametroId);
 }
