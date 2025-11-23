@@ -1,9 +1,9 @@
 using WFNSystem.API.Models;
-using WFNSystem.API.Services.Interfaces;
+using WFNSystem.API.Services.Strategies.Interfaces;
 
 namespace WFNSystem.API.Services.Strategies;
 
-public class VariableStrategy: ICalculoNovedadStrategy
+public class IngresoSimpleStrategy: IIngresoStrategy
 {
     public decimal Calcular(Novedad novedad, Empleado empleado)
     {

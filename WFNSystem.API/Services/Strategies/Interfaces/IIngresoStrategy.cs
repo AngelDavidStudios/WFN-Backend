@@ -1,8 +1,8 @@
 using WFNSystem.API.Models;
 
-namespace WFNSystem.API.Services.Interfaces;
+namespace WFNSystem.API.Services.Strategies.Interfaces;
 
-public interface ICalculoNovedadStrategy
+public interface IIngresoStrategy
 {
     decimal Calcular(Novedad novedad, Empleado empleado);
 }
