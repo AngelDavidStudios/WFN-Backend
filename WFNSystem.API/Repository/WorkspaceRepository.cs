@@ -1,10 +1,11 @@
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 using WFNSystem.API.Models;
 using WFNSystem.API.Repository.Interfaces;
 
 namespace WFNSystem.API.Repository;
 
-public class WorkspaceRepository: IRepository<Workspace>
+public class WorkspaceRepository: IWorkspaceRepository
 {
     private readonly IDynamoDBContext _context;
     
@@ -13,44 +14,47 @@ public class WorkspaceRepository: IRepository<Workspace>
         _context = context;
     }
     
-    public async Task<IEnumerable<Workspace>> GetAllAsync()
+    public async Task<IEnumerable<WorkspaceNomina>> GetAllAsync()
     {
-        var conditions = new List<ScanCondition>();
-        var allWorkspaces = await _context.ScanAsync<Workspace>(conditions).GetRemainingAsync();
-        return allWorkspaces;
+        var conditions = new List<ScanCondition>
+        {
+            new ScanCondition("SK", ScanOperator.Equal, "META#WS")
+        };
+
+        return await _context
+            .ScanAsync<WorkspaceNomina>(conditions)
+            .GetRemainingAsync();
     }
-    
-    public async Task<Workspace> GetByIdAsync(string id)
+
+    public async Task<WorkspaceNomina?> GetByPeriodoAsync(string periodo)
     {
-        return await _context.LoadAsync<Workspace>(id);
+        string pk = $"WS#{periodo}";
+        string sk = "META#WS";
+
+        return await _context.LoadAsync<WorkspaceNomina>(pk, sk);
     }
-    
-    public async Task AddAsync(Workspace workspace)
+
+    public async Task AddAsync(WorkspaceNomina workspace)
     {
-        workspace.ID_Workspace = Guid.NewGuid().ToString();
+        workspace.PK = $"WS#{workspace.Periodo}";
+        workspace.SK = "META#WS";
+
         await _context.SaveAsync(workspace);
     }
-    
-    public async Task UpdateAsync(string id, Workspace workspace)
+
+    public async Task UpdateAsync(WorkspaceNomina workspace)
     {
-        var existingWorkspace = await GetByIdAsync(id);
-        if (existingWorkspace == null)
-        {
-            throw new Exception("Workspace not found");
-        }
-        
-        workspace.ID_Workspace = id;
+        workspace.PK = $"WS#{workspace.Periodo}";
+        workspace.SK = "META#WS";
+
         await _context.SaveAsync(workspace);
     }
-    
-    public async Task DeleteAsync(string id)
+
+    public async Task DeleteAsync(string periodo)
     {
-        var workspace = await GetByIdAsync(id);
-        if (workspace == null)
-        {
-            throw new Exception("Workspace not found");
-        }
-        
-        await _context.DeleteAsync<Workspace>(id);
+        string pk = $"WS#{periodo}";
+        string sk = "META#WS";
+
+        await _context.DeleteAsync<WorkspaceNomina>(pk, sk);
     }
 }

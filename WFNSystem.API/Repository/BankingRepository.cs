@@ -4,7 +4,7 @@ using WFNSystem.API.Repository.Interfaces;
 
 namespace WFNSystem.API.Repository;
 
-public class BankingRepository: IRepository<Banking>
+public class BankingRepository: IBankingRepository
 {
     private readonly IDynamoDBContext _context;
     
@@ -13,44 +13,33 @@ public class BankingRepository: IRepository<Banking>
         _context = context;
     }
     
-    public async Task<IEnumerable<Banking>> GetAllAsync()
+    public async Task<IEnumerable<Banking>> GetBankingByEmpleadoIdAsync(string empleadoId)
     {
-        var conditions = new List<ScanCondition>();
-        var allBankings = await _context.ScanAsync<Banking>(conditions).GetRemainingAsync();
-        return allBankings;
+        string pk = $"EMP#{empleadoId}";
+        return await _context.QueryAsync<Banking>(pk).GetRemainingAsync();
     }
-    
-    public async Task<Banking> GetByIdAsync(string id)
+
+    public async Task<Banking?> GetBankingByIdAsync(string empleadoId, string bankingId)
     {
-        return await _context.LoadAsync<Banking>(id);
+        string pk = $"EMP#{empleadoId}";
+        string sk = $"BANK#{bankingId}";
+        return await _context.LoadAsync<Banking>(pk, sk);
     }
-    
-    public async Task AddAsync(Banking banking)
+
+    public async Task AddBankingAsync(Banking banking)
     {
-        banking.ID_Banking = Guid.NewGuid().ToString();
         await _context.SaveAsync(banking);
     }
-    
-    public async Task UpdateAsync(string id, Banking banking)
+
+    public async Task UpdateBankingAsync(Banking banking)
     {
-        var existingBanking = await GetByIdAsync(id);
-        if (existingBanking == null)
-        {
-            throw new Exception("Banking not found");
-        }
-        
-        banking.ID_Banking = id;
         await _context.SaveAsync(banking);
     }
-    
-    public async Task DeleteAsync(string id)
+
+    public async Task DeleteBankingAsync(string empleadoId, string bankingId)
     {
-        var banking = await GetByIdAsync(id);
-        if (banking == null)
-        {
-            throw new Exception("Banking not found");
-        }
-        
-        await _context.DeleteAsync<Banking>(id);
+        string pk = $"EMP#{empleadoId}";
+        string sk = $"BANK#{bankingId}";
+        await _context.DeleteAsync<Banking>(pk, sk);
     }
 }

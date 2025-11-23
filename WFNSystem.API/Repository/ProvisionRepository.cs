@@ -4,7 +4,7 @@ using WFNSystem.API.Repository.Interfaces;
 
 namespace WFNSystem.API.Repository;
 
-public class ProvisionRepository: IRepository<Provision>
+public class ProvisionRepository: IProvisionRepository
 {
     private readonly IDynamoDBContext _context;
     
@@ -13,44 +13,57 @@ public class ProvisionRepository: IRepository<Provision>
         _context = context;
     }
     
-    public async Task<IEnumerable<Provision>> GetAllAsync()
+    public async Task<IEnumerable<Provision>> GetProvisionesByEmpleadoAsync(string empleadoId)
     {
-        var conditions = new List<ScanCondition>();
-        var allProvisions = await _context.ScanAsync<Provision>(conditions).GetRemainingAsync();
-        return allProvisions;
+        string pk = $"EMP#{empleadoId}";
+
+        var results = await _context
+            .QueryAsync<Provision>(pk)
+            .GetRemainingAsync();
+
+        return results.Where(p => p.SK.StartsWith("PROV#"));
     }
-    
-    public async Task<Provision> GetByIdAsync(string id)
+
+    public async Task<IEnumerable<Provision>> GetProvisionesByPeriodoAsync(string empleadoId, string periodo)
     {
-        return await _context.LoadAsync<Provision>(id);
+        string pk = $"EMP#{empleadoId}";
+
+        var results = await _context
+            .QueryAsync<Provision>(pk)
+            .GetRemainingAsync();
+
+        return results.Where(p => p.Periodo == periodo);
     }
-    
+
+    public async Task<Provision?> GetByIdAsync(string empleadoId, string provisionId)
+    {
+        string pk = $"EMP#{empleadoId}";
+        string sk = $"PROV#{provisionId}";
+
+        return await _context.LoadAsync<Provision>(pk, sk);
+    }
+
     public async Task AddAsync(Provision provision)
     {
-        provision.ID_Provision = Guid.NewGuid().ToString();
+        provision.PK = $"EMP#{provision.ID_Empleado}";
+        provision.SK = $"PROV#{provision.ID_Provision}";
+
         await _context.SaveAsync(provision);
     }
-    
-    public async Task UpdateAsync(string id, Provision provision)
+
+    public async Task UpdateAsync(Provision provision)
     {
-        var existingProvision = await GetByIdAsync(id);
-        if (existingProvision == null)
-        {
-            throw new Exception("Provision not found");
-        }
-        
-        provision.ID_Provision = id;
+        provision.PK = $"EMP#{provision.ID_Empleado}";
+        provision.SK = $"PROV#{provision.ID_Provision}";
+
         await _context.SaveAsync(provision);
     }
-    
-    public async Task DeleteAsync(string id)
+
+    public async Task DeleteAsync(string empleadoId, string provisionId)
     {
-        var provision = await GetByIdAsync(id);
-        if (provision == null)
-        {
-            throw new Exception("Provision not found");
-        }
-        
-        await _context.DeleteAsync<Provision>(id);
+        string pk = $"EMP#{empleadoId}";
+        string sk = $"PROV#{provisionId}";
+
+        await _context.DeleteAsync<Provision>(pk, sk);
     }
 }

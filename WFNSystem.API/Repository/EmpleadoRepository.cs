@@ -1,9 +1,10 @@
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 using WFNSystem.API.Models;
 
 namespace WFNSystem.API.Repository.Interfaces;
 
-public class EmpleadoRepository: IRepository<Empleado>
+public class EmpleadoRepository: IEmpleadoRepository
 {
     private readonly IDynamoDBContext _context;
     
@@ -14,43 +15,46 @@ public class EmpleadoRepository: IRepository<Empleado>
     
     public async Task<IEnumerable<Empleado>> GetAllAsync()
     {
-        var conditions = new List<ScanCondition>();
-        var allEmpleados = await _context.ScanAsync<Empleado>(conditions).GetRemainingAsync();
-        return allEmpleados;
+        var conditions = new List<ScanCondition>
+        {
+            new ScanCondition("SK", ScanOperator.Equal, "META#EMP")
+        };
+
+        return await _context.ScanAsync<Empleado>(conditions).GetRemainingAsync();
     }
     
-    public async Task<Empleado> GetByIdAsync(string id)
+    public async Task<Empleado?> GetByIdAsync(string empleadoId)
     {
-        return await _context.LoadAsync<Empleado>(id);
+        string pk = $"EMP#{empleadoId}";
+        string sk = "META#EMP";
+        return await _context.LoadAsync<Empleado>(pk, sk);
     }
     
     public async Task AddAsync(Empleado empleado)
     {
-        empleado.ID_Empleado = Guid.NewGuid().ToString();
-        empleado.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        empleado.PK = $"EMP#{empleado.ID_Empleado}";
+        empleado.SK = "META#EMP";
         await _context.SaveAsync(empleado);
     }
     
-    public async Task UpdateAsync(string id, Empleado empleado)
+    public async Task UpdateAsync(Empleado empleado)
     {
-        var existingEmpleado = await GetByIdAsync(id);
-        if (existingEmpleado == null)
-        {
-            throw new Exception("Empleado not found");
-        }
-        
-        empleado.ID_Empleado = id;
+        empleado.PK = $"EMP#{empleado.ID_Empleado}";
+        empleado.SK = "META#EMP";
         await _context.SaveAsync(empleado);
     }
     
-    public async Task DeleteAsync(string id)
+    public async Task DeleteAsync(string empleadoId)
     {
-        var empleado = await GetByIdAsync(id);
-        if (empleado == null)
-        {
-            throw new Exception("Empleado not found");
-        }
-        
-        await _context.DeleteAsync<Empleado>(id);
+        string pk = $"EMP#{empleadoId}";
+        string sk = "META#EMP";
+        await _context.DeleteAsync<Empleado>(pk, sk);
+    }
+
+    public async Task<object?> GetEmpleadoFullAsync(string empleadoId)
+    {
+        string pk = $"EMP#{empleadoId}";
+        var results = await _context.QueryAsync<object>(pk).GetRemainingAsync();
+        return results;
     }
 }

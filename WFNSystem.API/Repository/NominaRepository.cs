@@ -1,10 +1,11 @@
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 using WFNSystem.API.Models;
 using WFNSystem.API.Repository.Interfaces;
 
 namespace WFNSystem.API.Repository;
 
-public class NominaRepository: IRepository<Nomina>
+public class NominaRepository: INominaRepository
 {
     private readonly IDynamoDBContext _context;
     
@@ -13,44 +14,58 @@ public class NominaRepository: IRepository<Nomina>
         _context = context;
     }
     
-    public async Task<IEnumerable<Nomina>> GetAllAsync()
+    public async Task<Nomina?> GetNominaAsync(string empleadoId, string periodo)
     {
-        var conditions = new List<ScanCondition>();
-        var allNominas = await _context.ScanAsync<Nomina>(conditions).GetRemainingAsync();
-        return allNominas;
+        string pk = $"EMP#{empleadoId}";
+        string sk = $"NOM#{periodo}";
+
+        return await _context.LoadAsync<Nomina>(pk, sk);
     }
-    
-    public async Task<Nomina> GetByIdAsync(string id)
+
+    public async Task<IEnumerable<Nomina>> GetNominasByEmpleadoAsync(string empleadoId)
     {
-        return await _context.LoadAsync<Nomina>(id);
+        string pk = $"EMP#{empleadoId}";
+
+        var results = await _context
+            .QueryAsync<Nomina>(pk)
+            .GetRemainingAsync();
+
+        return results.Where(n => n.SK.StartsWith("NOM#"));
     }
-    
+
+    public async Task<IEnumerable<Nomina>> GetNominasByPeriodoAsync(string periodo)
+    {
+        // Para obtener todas las nóminas de un mismo periodo,
+        // se debe hacer SCAN porque PK varía por empleado.
+        var conditions = new List<ScanCondition>
+        {
+            new ScanCondition("SK", ScanOperator.Equal, $"NOM#{periodo}")
+        };
+
+        return await _context.ScanAsync<Nomina>(conditions).GetRemainingAsync();
+    }
+
     public async Task AddAsync(Nomina nomina)
     {
-        nomina.ID_Nomina = Guid.NewGuid().ToString();
+        nomina.PK = $"EMP#{nomina.ID_Empleado}";
+        nomina.SK = $"NOM#{nomina.Periodo}";
+
         await _context.SaveAsync(nomina);
     }
-    
-    public async Task UpdateAsync(string id, Nomina nomina)
+
+    public async Task UpdateAsync(Nomina nomina)
     {
-        var existingNomina = await GetByIdAsync(id);
-        if (existingNomina == null)
-        {
-            throw new Exception("Nomina not found");
-        }
-        
-        nomina.ID_Nomina = id;
+        nomina.PK = $"EMP#{nomina.ID_Empleado}";
+        nomina.SK = $"NOM#{nomina.Periodo}";
+
         await _context.SaveAsync(nomina);
     }
-    
-    public async Task DeleteAsync(string id)
+
+    public async Task DeleteAsync(string empleadoId, string periodo)
     {
-        var nomina = await GetByIdAsync(id);
-        if (nomina == null)
-        {
-            throw new Exception("Nomina not found");
-        }
-        
-        await _context.DeleteAsync<Nomina>(id);
+        string pk = $"EMP#{empleadoId}";
+        string sk = $"NOM#{periodo}";
+
+        await _context.DeleteAsync<Nomina>(pk, sk);
     }
 }

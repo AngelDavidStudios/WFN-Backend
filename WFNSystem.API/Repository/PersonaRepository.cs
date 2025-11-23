@@ -1,10 +1,11 @@
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 using WFNSystem.API.Models;
 using WFNSystem.API.Repository.Interfaces;
 
 namespace WFNSystem.API.Repository;
 
-public class PersonaRepository: IRepository<Persona>
+public class PersonaRepository: IPersonaRepository
 {
     private readonly IDynamoDBContext _context;
     
@@ -15,43 +16,39 @@ public class PersonaRepository: IRepository<Persona>
     
     public async Task<IEnumerable<Persona>> GetAllAsync()
     {
-        var conditions = new List<ScanCondition>();
-        var allPersonas = await _context.ScanAsync<Persona>(conditions).GetRemainingAsync();
-        return allPersonas;
+        var conditions = new List<ScanCondition>
+        {
+            new ScanCondition("SK", ScanOperator.Equal, "META#PERSONA")
+        };
+
+        return await _context.ScanAsync<Persona>(conditions).GetRemainingAsync();
     }
     
-    public async Task<Persona> GetByIdAsync(string id)
+    public async Task<Persona?> GetByIdAsync(string personaId)
     {
-        return await _context.LoadAsync<Persona>(id);
+        string pk = $"PERSONA#{personaId}";
+        string sk = "META#PERSONA";
+        return await _context.LoadAsync<Persona>(pk, sk);
     }
     
     public async Task AddAsync(Persona persona)
     {
-        persona.ID_Persona = Guid.NewGuid().ToString();
-        persona.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        persona.PK = $"PERSONA#{persona.ID_Persona}";
+        persona.SK = "META#PERSONA";
         await _context.SaveAsync(persona);
     }
     
-    public async Task UpdateAsync(string id, Persona persona)
+    public async Task UpdateAsync(Persona persona)
     {
-        var existingPersona = await GetByIdAsync(id);
-        if (existingPersona == null)
-        {
-            throw new Exception("Persona not found");
-        }
-        
-        persona.ID_Persona = id;
+        persona.PK = $"PERSONA#{persona.ID_Persona}";
+        persona.SK = "META#PERSONA";
         await _context.SaveAsync(persona);
     }
     
-    public async Task DeleteAsync(string id)
+    public async Task DeleteAsync(string personaId)
     {
-        var persona = await GetByIdAsync(id);
-        if (persona == null)
-        {
-            throw new Exception("Persona not found");
-        }
-        
-        await _context.DeleteAsync<Persona>(id);
+        string pk = $"PERSONA#{personaId}";
+        string sk = "META#PERSONA";
+        await _context.DeleteAsync<Persona>(pk, sk);
     }
 }

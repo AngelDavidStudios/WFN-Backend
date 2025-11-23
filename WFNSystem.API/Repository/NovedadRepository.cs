@@ -4,7 +4,7 @@ using WFNSystem.API.Repository.Interfaces;
 
 namespace WFNSystem.API.Repository;
 
-public class NovedadRepository: IRepository<Novedad>
+public class NovedadRepository: INovedadRepository
 {
     private readonly IDynamoDBContext _context;
     
@@ -13,44 +13,57 @@ public class NovedadRepository: IRepository<Novedad>
         _context = context;
     }
     
-    public async Task<IEnumerable<Novedad>> GetAllAsync()
+    public async Task<IEnumerable<Novedad>> GetNovedadesByEmpleadoAsync(string empleadoId)
     {
-        var conditions = new List<ScanCondition>();
-        var allNovedades = await _context.ScanAsync<Novedad>(conditions).GetRemainingAsync();
-        return allNovedades;
+        string pk = $"EMP#{empleadoId}";
+
+        var results = await _context
+            .QueryAsync<Novedad>(pk)
+            .GetRemainingAsync();
+
+        return results.Where(n => n.SK.StartsWith("NOV#"));
     }
-    
-    public async Task<Novedad> GetByIdAsync(string id)
+
+    public async Task<IEnumerable<Novedad>> GetNovedadesByPeriodoAsync(string empleadoId, string periodo)
     {
-        return await _context.LoadAsync<Novedad>(id);
+        string pk = $"EMP#{empleadoId}";
+
+        var results = await _context
+            .QueryAsync<Novedad>(pk)
+            .GetRemainingAsync();
+
+        return results.Where(n => n.FechaIngresada.StartsWith(periodo));
     }
-    
+
+    public async Task<Novedad?> GetByIdAsync(string empleadoId, string novedadId)
+    {
+        string pk = $"EMP#{empleadoId}";
+        string sk = $"NOV#{novedadId}";
+
+        return await _context.LoadAsync<Novedad>(pk, sk);
+    }
+
     public async Task AddAsync(Novedad novedad)
     {
-        novedad.ID_Novedad = Guid.NewGuid().ToString();
+        novedad.PK = $"EMP#{novedad.ID_Empleado}";
+        novedad.SK = $"NOV#{novedad.ID_Novedad}";
+
         await _context.SaveAsync(novedad);
     }
-    
-    public async Task UpdateAsync(string id, Novedad novedad)
+
+    public async Task UpdateAsync(Novedad novedad)
     {
-        var existingNovedad = await GetByIdAsync(id);
-        if (existingNovedad == null)
-        {
-            throw new Exception("Novedad not found");
-        }
-        
-        novedad.ID_Novedad = id;
+        novedad.PK = $"EMP#{novedad.ID_Empleado}";
+        novedad.SK = $"NOV#{novedad.ID_Novedad}";
+
         await _context.SaveAsync(novedad);
     }
-    
-    public async Task DeleteAsync(string id)
+
+    public async Task DeleteAsync(string empleadoId, string novedadId)
     {
-        var novedad = await GetByIdAsync(id);
-        if (novedad == null)
-        {
-            throw new Exception("Novedad not found");
-        }
-        
-        await _context.DeleteAsync<Novedad>(id);
+        string pk = $"EMP#{empleadoId}";
+        string sk = $"NOV#{novedadId}";
+
+        await _context.DeleteAsync<Novedad>(pk, sk);
     }
 }
