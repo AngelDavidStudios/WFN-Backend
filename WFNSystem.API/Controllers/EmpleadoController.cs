@@ -1,19 +1,20 @@
 using Microsoft.AspNetCore.Mvc;
 using WFNSystem.API.Models;
-using WFNSystem.API.Repository.Interfaces;
 using WFNSystem.API.Services.Interfaces;
 
 namespace WFNSystem.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class EmpleadoController: ControllerBase
+public class EmpleadoController : ControllerBase
 {
     private readonly IEmpleadoService _empleadoService;
+    private readonly ILogger<EmpleadoController> _logger;
 
-    public EmpleadoController(IEmpleadoService empleadoService)
+    public EmpleadoController(IEmpleadoService empleadoService, ILogger<EmpleadoController> logger)
     {
         _empleadoService = empleadoService;
+        _logger = logger;
     }
     
     // ============================================================
@@ -22,8 +23,16 @@ public class EmpleadoController: ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var empleados = await _empleadoService.GetAllAsync();
-        return Ok(empleados);
+        try
+        {
+            var empleados = await _empleadoService.GetAllAsync();
+            return Ok(empleados);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener empleados");
+            return StatusCode(500, new { message = "Error al obtener los empleados", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -32,11 +41,19 @@ public class EmpleadoController: ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        var empleado = await _empleadoService.GetByIdAsync(id);
-        if (empleado == null)
-            return NotFound("Empleado no encontrado.");
+        try
+        {
+            var empleado = await _empleadoService.GetByIdAsync(id);
+            if (empleado == null)
+                return NotFound(new { message = "Empleado no encontrado" });
 
-        return Ok(empleado);
+            return Ok(empleado);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener empleado {EmpleadoId}", id);
+            return StatusCode(500, new { message = "Error al obtener el empleado", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -45,13 +62,21 @@ public class EmpleadoController: ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] Empleado empleado)
     {
-        if (empleado == null)
-            return BadRequest("Datos inválidos.");
+        try
+        {
+            if (empleado == null)
+                return BadRequest(new { message = "Datos inválidos" });
 
-        var created = await _empleadoService.CreateAsync(empleado);
-        return CreatedAtAction(nameof(GetById),
-            new { id = created.ID_Empleado },
-            created);
+            var created = await _empleadoService.CreateAsync(empleado);
+            return CreatedAtAction(nameof(GetById),
+                new { id = created.ID_Empleado },
+                created);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear empleado");
+            return StatusCode(500, new { message = "Error al crear el empleado", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -60,14 +85,22 @@ public class EmpleadoController: ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] Empleado empleado)
     {
-        var exists = await _empleadoService.GetByIdAsync(id);
-        if (exists == null)
-            return NotFound("Empleado no encontrado.");
+        try
+        {
+            var exists = await _empleadoService.GetByIdAsync(id);
+            if (exists == null)
+                return NotFound(new { message = "Empleado no encontrado" });
 
-        empleado.ID_Empleado = id;
+            empleado.ID_Empleado = id;
 
-        var updated = await _empleadoService.UpdateAsync(empleado);
-        return Ok(updated);
+            var updated = await _empleadoService.UpdateAsync(empleado);
+            return Ok(updated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar empleado {EmpleadoId}", id);
+            return StatusCode(500, new { message = "Error al actualizar el empleado", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -76,11 +109,19 @@ public class EmpleadoController: ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var deleted = await _empleadoService.DeleteAsync(id);
+        try
+        {
+            var deleted = await _empleadoService.DeleteAsync(id);
 
-        if (!deleted) 
-            return NotFound("No existe el empleado.");
+            if (!deleted) 
+                return NotFound(new { message = "No existe el empleado" });
 
-        return Ok(new { message = "Empleado eliminado correctamente." });
+            return Ok(new { message = "Empleado eliminado correctamente" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar empleado {EmpleadoId}", id);
+            return StatusCode(500, new { message = "Error al eliminar el empleado", error = ex.Message });
+        }
     }
 }

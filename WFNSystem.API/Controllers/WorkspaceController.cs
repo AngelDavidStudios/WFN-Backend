@@ -1,19 +1,20 @@
 using Microsoft.AspNetCore.Mvc;
 using WFNSystem.API.Models;
-using WFNSystem.API.Repository.Interfaces;
 using WFNSystem.API.Services.Interfaces;
 
 namespace WFNSystem.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class WorkspaceController: ControllerBase
+public class WorkspaceController : ControllerBase
 {
     private readonly IWorkspaceService _workspaceService;
+    private readonly ILogger<WorkspaceController> _logger;
 
-    public WorkspaceController(IWorkspaceService workspaceService)
+    public WorkspaceController(IWorkspaceService workspaceService, ILogger<WorkspaceController> logger)
     {
         _workspaceService = workspaceService;
+        _logger = logger;
     }
     
     // ============================================================
@@ -22,8 +23,16 @@ public class WorkspaceController: ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var workspaces = await _workspaceService.GetAllAsync();
-        return Ok(workspaces);
+        try
+        {
+            var workspaces = await _workspaceService.GetAllAsync();
+            return Ok(workspaces);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener workspaces");
+            return StatusCode(500, new { message = "Error al obtener los workspaces", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -32,12 +41,20 @@ public class WorkspaceController: ControllerBase
     [HttpGet("{periodo}")]
     public async Task<IActionResult> GetByPeriodo(string periodo)
     {
-        var ws = await _workspaceService.GetByPeriodoAsync(periodo);
+        try
+        {
+            var ws = await _workspaceService.GetByPeriodoAsync(periodo);
 
-        if (ws == null)
-            return NotFound("No existe un workspace para ese período.");
+            if (ws == null)
+                return NotFound(new { message = $"No existe un workspace para el período {periodo}" });
 
-        return Ok(ws);
+            return Ok(ws);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener workspace del periodo {Periodo}", periodo);
+            return StatusCode(500, new { message = "Error al obtener el workspace", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -46,8 +63,16 @@ public class WorkspaceController: ControllerBase
     [HttpPost("{periodo}")]
     public async Task<IActionResult> CrearPeriodo(string periodo)
     {
-        var creado = await _workspaceService.CrearPeriodoAsync(periodo);
-        return Ok(creado);
+        try
+        {
+            var creado = await _workspaceService.CrearPeriodoAsync(periodo);
+            return CreatedAtAction(nameof(GetByPeriodo), new { periodo }, creado);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear workspace para periodo {Periodo}", periodo);
+            return StatusCode(500, new { message = "Error al crear el workspace", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -56,8 +81,16 @@ public class WorkspaceController: ControllerBase
     [HttpPost("{periodo}/cerrar")]
     public async Task<IActionResult> CerrarPeriodo(string periodo)
     {
-        var cerrado = await _workspaceService.CerrarPeriodoAsync(periodo);
-        return Ok(cerrado);
+        try
+        {
+            var cerrado = await _workspaceService.CerrarPeriodoAsync(periodo);
+            return Ok(cerrado);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al cerrar workspace del periodo {Periodo}", periodo);
+            return StatusCode(500, new { message = "Error al cerrar el workspace", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -67,11 +100,19 @@ public class WorkspaceController: ControllerBase
     [HttpPut]
     public async Task<IActionResult> Update([FromBody] WorkspaceNomina workspace)
     {
-        if (workspace == null)
-            return BadRequest("Datos inválidos.");
+        try
+        {
+            if (workspace == null)
+                return BadRequest(new { message = "Datos inválidos" });
 
-        var updated = await _workspaceService.UpdateAsync(workspace);
-        return Ok(updated);
+            var updated = await _workspaceService.UpdateAsync(workspace);
+            return Ok(updated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar workspace");
+            return StatusCode(500, new { message = "Error al actualizar el workspace", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -80,12 +121,20 @@ public class WorkspaceController: ControllerBase
     [HttpDelete("{periodo}")]
     public async Task<IActionResult> Delete(string periodo)
     {
-        var deleted = await _workspaceService.DeleteAsync(periodo);
+        try
+        {
+            var deleted = await _workspaceService.DeleteAsync(periodo);
 
-        if (!deleted)
-            return NotFound("No existe un workspace para ese período.");
+            if (!deleted)
+                return NotFound(new { message = $"No existe un workspace para el período {periodo}" });
 
-        return Ok(new { message = "Workspace eliminado correctamente." });
+            return Ok(new { message = "Workspace eliminado correctamente" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar workspace del periodo {Periodo}", periodo);
+            return StatusCode(500, new { message = "Error al eliminar el workspace", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -94,12 +143,21 @@ public class WorkspaceController: ControllerBase
     [HttpGet("{periodo}/estado")]
     public async Task<IActionResult> VerificarEstado(string periodo)
     {
-        var abierto = await _workspaceService.VerificarPeriodoAbiertoAsync(periodo);
-
-        return Ok(new
+        try
         {
-            periodo,
-            abierto
-        });
+            var abierto = await _workspaceService.VerificarPeriodoAbiertoAsync(periodo);
+
+            return Ok(new
+            {
+                periodo,
+                abierto,
+                estado = abierto ? "ABIERTO" : "CERRADO"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al verificar estado del workspace periodo {Periodo}", periodo);
+            return StatusCode(500, new { message = "Error al verificar el estado", error = ex.Message });
+        }
     }
 }

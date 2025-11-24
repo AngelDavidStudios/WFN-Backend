@@ -1,19 +1,20 @@
 using Microsoft.AspNetCore.Mvc;
 using WFNSystem.API.Models;
-using WFNSystem.API.Repository.Interfaces;
 using WFNSystem.API.Services.Interfaces;
 
 namespace WFNSystem.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class ParametroController: ControllerBase
+public class ParametroController : ControllerBase
 {
     private readonly IParametroService _parametroService;
+    private readonly ILogger<ParametroController> _logger;
 
-    public ParametroController(IParametroService parametroService)
+    public ParametroController(IParametroService parametroService, ILogger<ParametroController> logger)
     {
         _parametroService = parametroService;
+        _logger = logger;
     }
     
     // ============================================================
@@ -22,8 +23,16 @@ public class ParametroController: ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var parametros = await _parametroService.GetAllAsync();
-        return Ok(parametros);
+        try
+        {
+            var parametros = await _parametroService.GetAllAsync();
+            return Ok(parametros);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener parámetros");
+            return StatusCode(500, new { message = "Error al obtener los parámetros", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -32,11 +41,19 @@ public class ParametroController: ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        var parametro = await _parametroService.GetByIdAsync(id);
-        if (parametro == null)
-            return NotFound("Parámetro no encontrado.");
+        try
+        {
+            var parametro = await _parametroService.GetByIdAsync(id);
+            if (parametro == null)
+                return NotFound(new { message = "Parámetro no encontrado" });
 
-        return Ok(parametro);
+            return Ok(parametro);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener parámetro {ParametroId}", id);
+            return StatusCode(500, new { message = "Error al obtener el parámetro", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -45,13 +62,21 @@ public class ParametroController: ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] Parametro parametro)
     {
-        if (parametro == null)
-            return BadRequest("Datos inválidos.");
+        try
+        {
+            if (parametro == null)
+                return BadRequest(new { message = "Datos inválidos" });
 
-        var created = await _parametroService.CreateAsync(parametro);
+            var created = await _parametroService.CreateAsync(parametro);
 
-        return CreatedAtAction(nameof(GetById),
-            new { id = created.ID_Parametro }, created);
+            return CreatedAtAction(nameof(GetById),
+                new { id = created.ID_Parametro }, created);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear parámetro");
+            return StatusCode(500, new { message = "Error al crear el parámetro", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -60,15 +85,23 @@ public class ParametroController: ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] Parametro parametro)
     {
-        var exists = await _parametroService.GetByIdAsync(id);
+        try
+        {
+            var exists = await _parametroService.GetByIdAsync(id);
 
-        if (exists == null)
-            return NotFound("Parámetro no encontrado.");
+            if (exists == null)
+                return NotFound(new { message = "Parámetro no encontrado" });
 
-        parametro.ID_Parametro = id;
+            parametro.ID_Parametro = id;
 
-        var updated = await _parametroService.UpdateAsync(parametro);
-        return Ok(updated);
+            var updated = await _parametroService.UpdateAsync(parametro);
+            return Ok(updated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar parámetro {ParametroId}", id);
+            return StatusCode(500, new { message = "Error al actualizar el parámetro", error = ex.Message });
+        }
     }
 
     // ============================================================
@@ -77,11 +110,19 @@ public class ParametroController: ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var deleted = await _parametroService.DeleteAsync(id);
+        try
+        {
+            var deleted = await _parametroService.DeleteAsync(id);
 
-        if (!deleted)
-            return NotFound("No existe el parámetro.");
+            if (!deleted)
+                return NotFound(new { message = "No existe el parámetro" });
 
-        return Ok(new { message = "Parámetro eliminado correctamente." });
+            return Ok(new { message = "Parámetro eliminado correctamente" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar parámetro {ParametroId}", id);
+            return StatusCode(500, new { message = "Error al eliminar el parámetro", error = ex.Message });
+        }
     }
 }
