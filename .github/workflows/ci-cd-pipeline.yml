@@ -84,8 +84,15 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Restore (Test project only)
+        run: dotnet restore WFNSystem.Tests/WFNSystem.Tests.csproj
+
+      - name: Build Test Project (No VSTest target)
+        run: dotnet build WFNSystem.Tests/WFNSystem.Tests.csproj --configuration Release --no-restore /p:SkipVSTest=true
+
       - name: Run unit tests
-        run: dotnet test --no-build --verbosity normal
+        run: dotnet test WFNSystem.Tests/WFNSystem.Tests.csproj --no-build --verbosity normal
+
 
   package:
     name: 4️⃣ Package (.zip)
