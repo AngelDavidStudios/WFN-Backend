@@ -1,0 +1,50 @@
+Novedades de la nomina
+Ingresos
+Parámetros	Descripción o formula
+NRO50	Número de horas al 50%
+NRO100	Número de horas al 100%
+Salario Base	Salario Base del empleado
+Horas extras 50%	(((Salario Base/30/8) * 50%) + (Salario Base/30/8)) * NRO50
+Horas extras 100%	(((Salario Base/30/8) * 50%) + (Salario Base/30/8)) * NRO100
+Variable	Variables ganadas bajo reglamento de la empresa
+Comisiones	Comisiones ganadas solamente para vendedores
+TOTAL, INGRESOS GRAVADOS IESS	Es la suma de (Salario Base + Horas extras 50% + Horas extras 100% + Variable + Comisiones).
+Transporte	Empresa da al empleado para el transporte
+Décimo tercero mensual	Es la división de (TOTAL, INGRESOS GRAVADOS IESS / 12)
+Décimo Cuarto Mensual	Es la división de (Salario canasta básica (470) / 12)
+Fondos de Reserva Mensual	Es la multiplicación de (TOTAL, INGRESOS GRAVADOS IESS * 8,33%)
+TOTAL, INGRESOS NO GRAVADOS	Es la suma de (Transporte + Décimo tercero mensual + Décimo Cuarto Mensual + Fondos de Reserva Mensual)
+TOTAL	Es la suma de (TOTAL, INGRESOS GRAVADOS IESS + TOTAL, INGRESOS NO GRAVADOS)
+
+Egresos
+Parámetros	Descripción o formula
+IESS Extensión Conyugue o Conviviente 3.41%	Si el empleado tiene esposo o esposa se le descuenta el sueldo base por el 3,41%
+IESS Personal	Es la multiplicación de (TOTAL, INGRESOS GRAVADOS IESS * 9,45%)
+Impuesto a la renta	Por el momento se define un valor manual
+COMPRA ALMACEN	Gasto de compra en almacenes
+GIMNASIO	Gasto del Gimnasio
+COMISARIATO	Gastos de compras
+CATERING	Gasto de almuerzos diarios
+CONSUMO CELULAR	Gasto de plan de celular
+COMPRA CELULAR	Gasto de compra de un celular
+PRESTAMO QUIROGRAFARIO	Gasto quirografario
+FALTA INJUSTIFICADA	Faltas injustificadas
+SEGURO DE VIDA	Seguro de vida
+PRESTAMO HIPOTECARIO	Préstamos hipotecarios
+PENSION ALIMENTICIA	Pensiones alimenticias 
+Anticipos a empleados	Anticipos prestados
+PRESTAMOS A EMPLEADOS	Préstamos a los empleados
+SUBSIDIO IESS ENFERMEDAD	Subsidio de IESS
+Nota de Crédito IESS Maternidad	Nota de crédito de maternidad
+TOTAL	Suma de todos los egresos
+
+Provisiones (Acumulados al año)
+Parámetros	Descripción o formula
+Provisión Vacaciones	Es la división de (TOTAL, INGRESOS GRAVADOS IESS / 24)
+IESS Patronal	Es la multiplicación de (TOTAL, INGRESOS GRAVADOS IESS * 12,15%)
+Fondos de Reserva Acumulado	Sumatoria acumulada de fondos de reserva mensual
+Décimo Tercero Acumulado	Sumatoria de los décimos terceros acumulados
+Décimo Cuarto Acumulado	Sumatoria de los décimos cuartos acumulados
+Devengamiento Provisión por Vacaciones	Se va restando cada que empleado pide vacaciones y se resta
+TOTAL PROVISIONES	Suma de todas las provisiones acumuladas
+

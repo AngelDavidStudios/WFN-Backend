@@ -126,39 +126,136 @@ public class NominaService : INominaService
         List<Novedad> novedades,
         Dictionary<string, Parametro> parametros)
     {
-        decimal totalGravado = 0;
+        // Inicializar con salario base como ingreso gravable
+        decimal totalGravado = empleado.SalarioBase;
         decimal totalNoGravado = 0;
-    
+
+        _logger.LogInformation($"Iniciando cálculo de ingresos - Salario Base: {empleado.SalarioBase}");
+
+        // ============================================================
+        // PASO 1: Procesar NOVEDADES PRIMERO (horas extras, comisiones, etc.)
+        // Para calcular el TOTAL INGRESOS GRAVADOS IESS correcto
+        // ============================================================
         foreach (var novedad in novedades.Where(n => n.TipoNovedad == "INGRESO"))
         {
             if (!parametros.TryGetValue(novedad.ID_Parametro, out var parametro))
-                throw new Exception($"El parámetro {novedad.ID_Parametro} no existe.");
-    
-            // Obtener estrategia
-            var strategy = _strategyFactory.GetIngresoStrategy(parametro.Tipo);
+            {
+                _logger.LogWarning($"Parámetro {novedad.ID_Parametro} no encontrado para novedad {novedad.ID_Novedad}");
+                continue;
+            }
+
+            // Obtener estrategia de cálculo
+            var strategy = _strategyFactory.GetIngresoStrategy(parametro.TipoCalculo);
             if (strategy == null)
-                throw new Exception($"No existe estrategia para ingreso: {parametro.Tipo}");
-    
-            // Calcular valor con los 5 parámetros requeridos
+            {
+                _logger.LogWarning($"No existe estrategia para tipo de cálculo: {parametro.TipoCalculo}");
+                continue;
+            }
+
+            // Calcular valor usando la estrategia
             var valor = strategy.Calcular(
                 novedad,
                 empleado,
                 empleado.SalarioBase,
-                totalGravado,
-                new Dictionary<string, decimal>()
+                totalGravado,  // Total acumulado hasta ahora
+                new Dictionary<string, decimal> { { "DECIMO_CUARTO_BASE", 470m } }
             );
-    
-            // Clasificación gravable
+
+            _logger.LogInformation($"Novedad {parametro.Nombre}: {valor:F2} (Gravable: {novedad.Is_Gravable})");
+
+            // Clasificar según si es gravable o no
             if (novedad.Is_Gravable)
                 totalGravado += valor;
             else
                 totalNoGravado += valor;
         }
-    
-        // Asignar a la nómina
-        nomina.TotalIngresosGravados = totalGravado;
-        nomina.TotalIngresosNoGravados = totalNoGravado;
-        nomina.TotalIngresos = totalGravado + totalNoGravado;
+
+        _logger.LogInformation($"Total Ingresos Gravados IESS (antes de décimos): {totalGravado:F2}");
+
+        // ============================================================
+        // PASO 2: Calcular DÉCIMOS MENSUALIZADOS sobre el total gravado
+        // IMPORTANTE: Los décimos son INGRESOS NO GRAVABLES
+        // ============================================================
+        
+        // Décimo Tercero Mensual - NO GRAVABLE
+        if (empleado.Is_DecimoTercMensual)
+        {
+            // Se calcula sobre el TOTAL INGRESOS GRAVADOS IESS
+            decimal decimoTerceroMensual = totalGravado / 12m;
+            totalNoGravado += decimoTerceroMensual;  // ✅ NO GRAVABLE
+            
+            _logger.LogInformation($"Décimo Tercero Mensualizado (NO GRAVABLE): {decimoTerceroMensual:F2}");
+        }
+        
+        // Décimo Cuarto Mensual - NO GRAVABLE
+        if (empleado.Is_DecimoCuartoMensual)
+        {
+            // SBU actual Ecuador 2025
+            decimal sbu = 470m;
+            decimal decimoCuartoMensual = sbu / 12m;
+            totalNoGravado += decimoCuartoMensual;  // ✅ NO GRAVABLE
+            
+            _logger.LogInformation($"Décimo Cuarto Mensualizado (NO GRAVABLE): {decimoCuartoMensual:F2}");
+        }
+        
+        // Fondos de Reserva Mensual - NO GRAVABLE
+        if (empleado.Is_FondoReserva)
+        {
+            // Se calcula sobre el TOTAL INGRESOS GRAVADOS IESS
+            decimal fondosReservaMensual = totalGravado * 0.0833m;
+            totalNoGravado += fondosReservaMensual;  // ✅ NO GRAVABLE
+            
+            _logger.LogInformation($"Fondos de Reserva Mensualizado (NO GRAVABLE): {fondosReservaMensual:F2}");
+        }
+
+        // ============================================================
+        // PASO 3: TRANSFERIR PROVISIONES ACUMULADAS en mes correspondiente
+        // ============================================================
+        var partes = nomina.Periodo.Split('-');
+        int mes = int.Parse(partes[1]);
+        
+        // DÉCIMO TERCERO: Se transfiere en NOVIEMBRE (mes 11)
+        if (mes == 11 && !empleado.Is_DecimoTercMensual)
+        {
+            var provD13 = await ObtenerProvisionAcumuladaAsync(empleado.ID_Empleado, "DECIMO_TERCERO");
+            if (provD13 != null && provD13.Acumulado > 0)
+            {
+                totalNoGravado += provD13.Acumulado;  // ✅ NO GRAVABLE
+                
+                // Marcar como transferida
+                provD13.IsTransferred = true;
+                provD13.Total = provD13.Acumulado;
+                await _provisionRepo.UpdateAsync(provD13);
+                
+                _logger.LogInformation($"✅ Décimo Tercero Acumulado transferido al ROL (NO GRAVABLE): {provD13.Acumulado:F2}");
+            }
+        }
+        
+        // DÉCIMO CUARTO: Se transfiere en JULIO (mes 7)
+        if (mes == 7 && !empleado.Is_DecimoCuartoMensual)
+        {
+            var provD14 = await ObtenerProvisionAcumuladaAsync(empleado.ID_Empleado, "DECIMO_CUARTO");
+            if (provD14 != null && provD14.Acumulado > 0)
+            {
+                totalNoGravado += provD14.Acumulado;  // ✅ NO GRAVABLE
+                
+                // Marcar como transferida
+                provD14.IsTransferred = true;
+                provD14.Total = provD14.Acumulado;
+                await _provisionRepo.UpdateAsync(provD14);
+                
+                _logger.LogInformation($"✅ Décimo Cuarto Acumulado transferido al ROL (NO GRAVABLE): {provD14.Acumulado:F2}");
+            }
+        }
+
+        // Asignar totales a la nómina
+        nomina.TotalIngresosGravados = Math.Round(totalGravado, 2);
+        nomina.TotalIngresosNoGravados = Math.Round(totalNoGravado, 2);
+        nomina.TotalIngresos = Math.Round(totalGravado + totalNoGravado, 2);
+
+        _logger.LogInformation($"✅ Total Ingresos Gravados IESS: {nomina.TotalIngresosGravados:F2}");
+        _logger.LogInformation($"✅ Total Ingresos No Gravados: {nomina.TotalIngresosNoGravados:F2}");
+        _logger.LogInformation($"✅ Total Ingresos: {nomina.TotalIngresos:F2}");
     }
     
     private async Task CalcularEgresosAsync(
@@ -302,6 +399,19 @@ public class NominaService : INominaService
         nomina.NetoAPagar = ingresos - egresos;
 
         _logger.LogInformation($"Neto a pagar calculado: {nomina.NetoAPagar}");
+    }
+
+    // ============================================================
+    // MÉTODO AUXILIAR: Obtener provisión acumulada no transferida
+    // ============================================================
+    private async Task<Provision?> ObtenerProvisionAcumuladaAsync(string empleadoId, string tipo)
+    {
+        var provisiones = await _provisionRepo.GetByTipoAsync(empleadoId, tipo);
+        
+        return provisiones
+            .Where(p => !p.IsTransferred)
+            .OrderByDescending(p => p.Periodo)
+            .FirstOrDefault();
     }
     
     private async Task GuardarNominaAsync(Nomina nomina)
