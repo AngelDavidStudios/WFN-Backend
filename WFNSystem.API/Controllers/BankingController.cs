@@ -18,92 +18,124 @@ public class BankingController : ControllerBase
     }
     
     // ============================================================
-    // GET: api/banking/empleado/{empleadoId}
+    // GET: api/banking/persona/{personaId}
     // ============================================================
-    [HttpGet("empleado/{empleadoId}")]
-    public async Task<IActionResult> GetByEmpleado(string empleadoId)
+    [HttpGet("persona/{personaId}")]
+    public async Task<IActionResult> GetByPersona(string personaId)
     {
         try
         {
-            var cuentas = await _bankingService.GetByEmpleadoAsync(empleadoId);
+            var cuentas = await _bankingService.GetByPersonaAsync(personaId);
 
             if (cuentas == null || !cuentas.Any())
-                return NotFound(new { message = "El empleado no tiene cuentas bancarias registradas" });
+                return NotFound(new { message = "La persona no tiene cuentas bancarias registradas" });
 
             return Ok(cuentas);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener cuentas bancarias del empleado {EmpleadoId}", empleadoId);
+            _logger.LogError(ex, "Error al obtener cuentas bancarias de la persona {PersonaId}", personaId);
             return StatusCode(500, new { message = "Error al obtener las cuentas bancarias", error = ex.Message });
         }
     }
 
     // ============================================================
-    // POST: api/banking/empleado/{empleadoId}
+    // GET: api/banking/persona/{personaId}/{bankId}
     // ============================================================
-    [HttpPost("empleado/{empleadoId}")]
-    public async Task<IActionResult> Create(string empleadoId, [FromBody] Banking banking)
+    [HttpGet("persona/{personaId}/{bankId}")]
+    public async Task<IActionResult> GetById(string personaId, string bankId)
+    {
+        try
+        {
+            var cuenta = await _bankingService.GetByIdAsync(personaId, bankId);
+
+            if (cuenta == null)
+                return NotFound(new { message = "Cuenta bancaria no encontrada" });
+
+            return Ok(cuenta);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener cuenta bancaria {BankId} de la persona {PersonaId}", bankId, personaId);
+            return StatusCode(500, new { message = "Error al obtener la cuenta bancaria", error = ex.Message });
+        }
+    }
+
+    // ============================================================
+    // POST: api/banking/persona/{personaId}
+    // ============================================================
+    [HttpPost("persona/{personaId}")]
+    public async Task<IActionResult> Create(string personaId, [FromBody] Banking banking)
     {
         try
         {
             if (banking == null)
                 return BadRequest(new { message = "Datos inválidos" });
 
-            var created = await _bankingService.CreateAsync(empleadoId, banking);
+            var created = await _bankingService.CreateAsync(personaId, banking);
 
-            return CreatedAtAction(nameof(GetByEmpleado), 
-                new { empleadoId = empleadoId }, created);
+            return CreatedAtAction(nameof(GetById), 
+                new { personaId, bankId = created.ID_Banking }, created);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al crear cuenta bancaria para persona {PersonaId}", personaId);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al crear cuenta bancaria para empleado {EmpleadoId}", empleadoId);
+            _logger.LogError(ex, "Error al crear cuenta bancaria para persona {PersonaId}", personaId);
             return StatusCode(500, new { message = "Error al crear la cuenta bancaria", error = ex.Message });
         }
     }
 
     // ============================================================
-    // PUT: api/banking/{bankId}/empleado/{empleadoId}
+    // PUT: api/banking/persona/{personaId}/{bankId}
     // ============================================================
-    [HttpPut("{bankId}/empleado/{empleadoId}")]
-    public async Task<IActionResult> Update(string bankId, string empleadoId, [FromBody] Banking banking)
+    [HttpPut("persona/{personaId}/{bankId}")]
+    public async Task<IActionResult> Update(string personaId, string bankId, [FromBody] Banking banking)
     {
         try
         {
-            var exists = await _bankingService.GetByIdAsync(empleadoId, bankId);
+            var exists = await _bankingService.GetByIdAsync(personaId, bankId);
             if (exists == null)
-                return NotFound(new { message = "La cuenta bancaria no existe para este empleado" });
+                return NotFound(new { message = "La cuenta bancaria no existe para esta persona" });
 
             banking.ID_Banking = bankId;
 
-            var updated = await _bankingService.UpdateAsync(empleadoId, banking);
+            var updated = await _bankingService.UpdateAsync(personaId, banking);
             return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al actualizar cuenta bancaria {BankId} de la persona {PersonaId}", bankId, personaId);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al actualizar cuenta bancaria {BankId} del empleado {EmpleadoId}", bankId, empleadoId);
+            _logger.LogError(ex, "Error al actualizar cuenta bancaria {BankId} de la persona {PersonaId}", bankId, personaId);
             return StatusCode(500, new { message = "Error al actualizar la cuenta bancaria", error = ex.Message });
         }
     }
 
     // ============================================================
-    // DELETE: api/banking/{bankId}/empleado/{empleadoId}
+    // DELETE: api/banking/persona/{personaId}/{bankId}
     // ============================================================
-    [HttpDelete("{bankId}/empleado/{empleadoId}")]
-    public async Task<IActionResult> Delete(string bankId, string empleadoId)
+    [HttpDelete("persona/{personaId}/{bankId}")]
+    public async Task<IActionResult> Delete(string personaId, string bankId)
     {
         try
         {
-            var deleted = await _bankingService.DeleteAsync(empleadoId, bankId);
+            var deleted = await _bankingService.DeleteAsync(personaId, bankId);
 
             if (!deleted)
-                return NotFound(new { message = "No existe la cuenta bancaria para este empleado" });
+                return NotFound(new { message = "No existe la cuenta bancaria para esta persona" });
 
             return Ok(new { message = "Cuenta bancaria eliminada correctamente" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al eliminar cuenta bancaria {BankId} del empleado {EmpleadoId}", bankId, empleadoId);
+            _logger.LogError(ex, "Error al eliminar cuenta bancaria {BankId} de la persona {PersonaId}", bankId, personaId);
             return StatusCode(500, new { message = "Error al eliminar la cuenta bancaria", error = ex.Message });
         }
     }

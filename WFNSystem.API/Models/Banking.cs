@@ -5,11 +5,11 @@ namespace WFNSystem.API.Models;
 [DynamoDBTable("WFNSystem")]
 public class Banking
 {
-    // PK = EMPLEADO#<ID_Empleado>
+    // PK = PERSONA#<ID_Persona>
     [DynamoDBHashKey]
     public string PK { get; set; } = string.Empty;    
     
-    // SK = BANK#ID_Banking
+    // SK = BANK#<ID_Banking>
     [DynamoDBRangeKey]
     public string SK { get; set; } = string.Empty;     
 

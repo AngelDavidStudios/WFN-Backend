@@ -70,6 +70,11 @@ public class DepartamentoController : ControllerBase
             var created = await _departamentoService.CreateAsync(dep);
             return CreatedAtAction(nameof(GetById), new { id = created.ID_Departamento }, created);
         }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al crear departamento");
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear departamento");
@@ -93,6 +98,11 @@ public class DepartamentoController : ControllerBase
             var updated = await _departamentoService.UpdateAsync(dep);
 
             return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al actualizar departamento {DepartamentoId}", id);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {

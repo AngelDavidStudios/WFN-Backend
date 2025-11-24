@@ -5,13 +5,13 @@ namespace WFNSystem.API.Models;
 [DynamoDBTable("WFNSystem")]
 public class Departamento
 {
-    // PK = DEPARTAMENTO#<ID_Departamento>
+    // PK = DEP#<ID_Departamento>
     [DynamoDBHashKey]
     public string PK { get; set; } = string.Empty;
 
     // SK fijo porque es entidad principal
     [DynamoDBRangeKey]
-    public string SK { get; set; } = "META#DEPARTAMENTO";
+    public string SK { get; set; } = "META#DEP";
 
     [DynamoDBProperty]
     public string ID_Departamento { get; set; } = string.Empty;
@@ -35,5 +35,5 @@ public class Departamento
     public string CentroCosto { get; set; } = string.Empty;
 
     [DynamoDBProperty]
-    public DateTime DateCreated { get; set; }
+    public string DateCreated { get; set; } = string.Empty;
 }

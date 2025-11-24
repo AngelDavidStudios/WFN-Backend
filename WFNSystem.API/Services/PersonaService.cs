@@ -25,6 +25,9 @@ public class PersonaService: IPersonaService
 
     public async Task<Persona> CreateAsync(Persona persona)
     {
+        // Validaciones
+        ValidarPersona(persona);
+
         // Crear ID
         persona.ID_Persona = Guid.NewGuid().ToString();
 
@@ -32,8 +35,11 @@ public class PersonaService: IPersonaService
         persona.PK = $"PERSONA#{persona.ID_Persona}";
         persona.SK = "META#PERSONA";
 
+        // Calcular edad automáticamente
+        persona.Edad = CalcularEdad(persona.DateBirthday);
+
         // Fecha de creación
-        persona.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+        persona.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-dd");
 
         await _repo.AddAsync(persona);
 
@@ -47,9 +53,15 @@ public class PersonaService: IPersonaService
         if (exists == null)
             throw new Exception("Persona no encontrada.");
 
+        // Validaciones de negocio
+        ValidarPersona(persona);
+
         // Mantener claves correctas
         persona.PK = $"PERSONA#{persona.ID_Persona}";
         persona.SK = "META#PERSONA";
+
+        // Recalcular edad
+        persona.Edad = CalcularEdad(persona.DateBirthday);
 
         await _repo.UpdateAsync(persona);
         return persona;
@@ -63,5 +75,60 @@ public class PersonaService: IPersonaService
 
         await _repo.DeleteAsync(personaId);
         return true;
+    }
+
+    // ============================================================
+    // MÉTODOS PRIVADOS DE VALIDACIÓN Y CÁLCULO
+    // ============================================================
+
+    private void ValidarPersona(Persona persona)
+    {
+        // Validar DNI
+        if (string.IsNullOrWhiteSpace(persona.DNI))
+            throw new ArgumentException("El DNI es requerido.");
+
+        if (persona.DNI.Length < 10)
+            throw new ArgumentException("El DNI debe tener al menos 10 caracteres.");
+
+        // Validar nombres
+        if (string.IsNullOrWhiteSpace(persona.PrimerNombre))
+            throw new ArgumentException("El primer nombre es requerido.");
+
+        if (string.IsNullOrWhiteSpace(persona.ApellidoPaterno))
+            throw new ArgumentException("El apellido paterno es requerido.");
+
+        // Validar fecha de nacimiento
+        if (persona.DateBirthday == default || persona.DateBirthday >= DateTime.UtcNow)
+            throw new ArgumentException("La fecha de nacimiento es inválida.");
+
+        // Validar género
+        if (!string.IsNullOrWhiteSpace(persona.Gender))
+        {
+            var genderNormalized = persona.Gender.ToUpper();
+            if (genderNormalized != "M" && genderNormalized != "F" && genderNormalized != "OTRO")
+                throw new ArgumentException("El género debe ser 'M', 'F' o 'OTRO'.");
+        }
+
+        // Validar correos (formato básico)
+        if (persona.Correo != null && persona.Correo.Any())
+        {
+            foreach (var correo in persona.Correo)
+            {
+                if (!correo.Contains("@") || !correo.Contains("."))
+                    throw new ArgumentException($"El correo '{correo}' no es válido.");
+            }
+        }
+    }
+
+    private int CalcularEdad(DateTime fechaNacimiento)
+    {
+        var hoy = DateTime.UtcNow;
+        var edad = hoy.Year - fechaNacimiento.Year;
+
+        // Ajustar si aún no ha cumplido años este año
+        if (fechaNacimiento.Date > hoy.AddYears(-edad))
+            edad--;
+
+        return edad;
     }
 }

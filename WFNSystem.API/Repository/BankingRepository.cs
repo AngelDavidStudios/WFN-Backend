@@ -13,16 +13,16 @@ public class BankingRepository: IBankingRepository
         _context = context;
     }
     
-    public async Task<IEnumerable<Banking>> GetByEmpleadoAsync(string empleadoId)
+    public async Task<IEnumerable<Banking>> GetByPersonaAsync(string personaId)
     {
-        string pk = $"EMP#{empleadoId}";
+        string pk = $"PERSONA#{personaId}";
         var query = _context.QueryAsync<Banking>(pk);
         return await query.GetRemainingAsync();
     }
 
-    public async Task<Banking?> GetByIdAsync(string empleadoId, string bankingId)
+    public async Task<Banking?> GetByIdAsync(string personaId, string bankingId)
     {
-        string pk = $"EMP#{empleadoId}";
+        string pk = $"PERSONA#{personaId}";
         string sk = $"BANK#{bankingId}";
 
         return await _context.LoadAsync<Banking>(pk, sk);
@@ -38,9 +38,9 @@ public class BankingRepository: IBankingRepository
         await _context.SaveAsync(banking);
     }
 
-    public async Task DeleteAsync(string empleadoId, string bankingId)
+    public async Task DeleteAsync(string personaId, string bankingId)
     {
-        string pk = $"EMP#{empleadoId}";
+        string pk = $"PERSONA#{personaId}";
         string sk = $"BANK#{bankingId}";
 
         await _context.DeleteAsync<Banking>(pk, sk);
