@@ -85,13 +85,13 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Restore (Test project only)
-        run: dotnet restore WFNSystem.Tests/WFNSystem.Tests.csproj
+        run: dotnet restore WFN-Backend/WFNSystem.Tests.csproj
 
       - name: Build Test Project (No VSTest target)
-        run: dotnet build WFNSystem.Tests/WFNSystem.Tests.csproj --configuration Release --no-restore /p:SkipVSTest=true
+        run: dotnet build WFN-Backend/WFNSystem.Tests.csproj --configuration Release --no-restore /p:SkipVSTest=true
 
       - name: Run unit tests
-        run: dotnet test WFNSystem.Tests/WFNSystem.Tests.csproj --no-build --verbosity normal
+        run: dotnet test WFN-Backend/WFNSystem.Tests.csproj --no-build --verbosity normal
 
 
   package:
