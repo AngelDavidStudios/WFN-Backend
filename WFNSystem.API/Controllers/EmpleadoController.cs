@@ -72,6 +72,11 @@ public class EmpleadoController : ControllerBase
                 new { id = created.ID_Empleado },
                 created);
         }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al crear empleado");
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear empleado");
@@ -95,6 +100,11 @@ public class EmpleadoController : ControllerBase
 
             var updated = await _empleadoService.UpdateAsync(empleado);
             return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al actualizar empleado {EmpleadoId}", id);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {

@@ -57,6 +57,25 @@ public class ParametroController : ControllerBase
     }
 
     // ============================================================
+    // GET: api/parametro/tipo/{tipo}
+    // Obtiene parámetros por tipo (INGRESO, EGRESO, PROVISION)
+    // ============================================================
+    [HttpGet("tipo/{tipo}")]
+    public async Task<IActionResult> GetByTipo(string tipo)
+    {
+        try
+        {
+            var parametros = await _parametroService.GetByTipoAsync(tipo);
+            return Ok(parametros);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener parámetros del tipo {Tipo}", tipo);
+            return StatusCode(500, new { message = "Error al obtener los parámetros", error = ex.Message });
+        }
+    }
+
+    // ============================================================
     // POST: api/parametro
     // ============================================================
     [HttpPost]
@@ -71,6 +90,11 @@ public class ParametroController : ControllerBase
 
             return CreatedAtAction(nameof(GetById),
                 new { id = created.ID_Parametro }, created);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al crear parámetro");
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -96,6 +120,11 @@ public class ParametroController : ControllerBase
 
             var updated = await _parametroService.UpdateAsync(parametro);
             return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al actualizar parámetro {ParametroId}", id);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {

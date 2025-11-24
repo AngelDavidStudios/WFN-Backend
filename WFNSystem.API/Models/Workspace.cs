@@ -7,9 +7,9 @@ public class WorkspaceNomina
 {
     // PK fijo para todos los periodos
     [DynamoDBHashKey]
-    public string PK { get; set; } = "WORKSPACE";
+    public string PK { get; set; } = "WORKSPACE#GLOBAL";
 
-    // SK = PERIOD#2025-02
+    // SK = WORK#{periodo} (ejemplo: WORK#2025-11)
     [DynamoDBRangeKey]
     public string SK { get; set; } = string.Empty;
 

@@ -7,10 +7,17 @@ namespace WFNSystem.API.Services;
 public class NovedadService: INovedadService
 {
     private readonly INovedadRepository _repo;
+    private readonly IEmpleadoRepository _empleadoRepo;
+    private readonly IParametroRepository _parametroRepo;
 
-    public NovedadService(INovedadRepository repo)
+    public NovedadService(
+        INovedadRepository repo, 
+        IEmpleadoRepository empleadoRepo,
+        IParametroRepository parametroRepo)
     {
         _repo = repo;
+        _empleadoRepo = empleadoRepo;
+        _parametroRepo = parametroRepo;
     }
 
     public async Task<IEnumerable<Novedad>> GetByEmpleadoAsync(string empleadoId)
@@ -23,32 +30,45 @@ public class NovedadService: INovedadService
         return await _repo.GetByPeriodoAsync(empleadoId, periodo);
     }
 
-    public async Task<Novedad?> GetByIdAsync(string empleadoId, string novedadId, string periodo)
+    public async Task<Novedad?> GetByIdAsync(string empleadoId, string periodo, string novedadId)
     {
         return await _repo.GetByIdAsync(empleadoId, novedadId, periodo);
     }
 
     public async Task<Novedad> CreateAsync(string empleadoId, Novedad novedad)
     {
+        // Validar que el empleado exista
+        var empleado = await _empleadoRepo.GetByIdAsync(empleadoId);
+        if (empleado == null)
+            throw new Exception("El empleado no existe.");
+
+        // Validaciones de negocio
+        ValidarNovedad(novedad);
+
+        // Validar que el parámetro exista
+        var parametro = await _parametroRepo.GetByIdAsync(novedad.ID_Parametro);
+        if (parametro == null)
+            throw new ArgumentException($"El parámetro '{novedad.ID_Parametro}' no existe.");
+
+        // Validar coherencia entre TipoNovedad y Tipo de Parámetro
+        if (!string.Equals(novedad.TipoNovedad, parametro.Tipo, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException($"El tipo de novedad '{novedad.TipoNovedad}' no coincide con el tipo del parámetro '{parametro.Tipo}'.");
+
         // Crear ID
         novedad.ID_Novedad = Guid.NewGuid().ToString();
 
-        // Normalizar periodo
-        if (string.IsNullOrWhiteSpace(novedad.Periodo))
-            throw new Exception("La novedad debe incluir el periodo.");
-
-        string periodo = novedad.Periodo.Trim().ToUpper();
+        // Normalizar periodo (YYYY-MM)
+        novedad.Periodo = NormalizarPeriodo(novedad.Periodo);
 
         // Construcción de claves
         novedad.PK = $"EMP#{empleadoId}";
-        novedad.SK = $"NOV#{periodo}#{novedad.ID_Novedad}";
+        novedad.SK = $"NOV#{novedad.Periodo}#{novedad.ID_Novedad}";
 
         // Timestamp
         novedad.FechaIngresada = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-        // Sanitizar tipos
-        novedad.TipoNovedad = novedad.TipoNovedad.Trim().ToUpper().Replace(" ", "_");
-        novedad.ID_Parametro = novedad.ID_Parametro.Trim();
+        // Normalizar tipo
+        novedad.TipoNovedad = novedad.TipoNovedad.Trim().ToUpper();
 
         await _repo.AddAsync(novedad);
         return novedad;
@@ -62,18 +82,34 @@ public class NovedadService: INovedadService
         if (string.IsNullOrWhiteSpace(novedad.Periodo))
             throw new Exception("La novedad debe incluir Periodo para actualizar.");
 
-        string periodo = novedad.Periodo.Trim().ToUpper();
+        // Normalizar periodo
+        novedad.Periodo = NormalizarPeriodo(novedad.Periodo);
 
-        var exists = await _repo.GetByIdAsync(empleadoId, novedad.ID_Novedad, periodo);
+        var exists = await _repo.GetByIdAsync(empleadoId, novedad.ID_Novedad, novedad.Periodo);
         if (exists == null)
             throw new Exception("La novedad no existe.");
 
-        // Reconstruimos PK & SK
+        // Validaciones de negocio
+        ValidarNovedad(novedad);
+
+        // Validar que el parámetro exista
+        var parametro = await _parametroRepo.GetByIdAsync(novedad.ID_Parametro);
+        if (parametro == null)
+            throw new ArgumentException($"El parámetro '{novedad.ID_Parametro}' no existe.");
+
+        // Validar coherencia entre TipoNovedad y Tipo de Parámetro
+        if (!string.Equals(novedad.TipoNovedad, parametro.Tipo, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException($"El tipo de novedad '{novedad.TipoNovedad}' no coincide con el tipo del parámetro '{parametro.Tipo}'.");
+
+        // Reconstruir PK & SK
         novedad.PK = $"EMP#{empleadoId}";
-        novedad.SK = $"NOV#{periodo}#{novedad.ID_Novedad}";
+        novedad.SK = $"NOV#{novedad.Periodo}#{novedad.ID_Novedad}";
 
         // Normalizar tipo
-        novedad.TipoNovedad = novedad.TipoNovedad.Trim().ToUpper().Replace(" ", "_");
+        novedad.TipoNovedad = novedad.TipoNovedad.Trim().ToUpper();
+
+        // Preservar fecha de ingreso original
+        novedad.FechaIngresada = exists.FechaIngresada;
 
         await _repo.UpdateAsync(novedad);
         return novedad;
@@ -87,5 +123,51 @@ public class NovedadService: INovedadService
 
         await _repo.DeleteAsync(empleadoId, periodo, novedadId);
         return true;
+    }
+
+    // ============================================================
+    // MÉTODOS PRIVADOS DE VALIDACIÓN
+    // ============================================================
+
+    private void ValidarNovedad(Novedad novedad)
+    {
+        // Validar periodo
+        if (string.IsNullOrWhiteSpace(novedad.Periodo))
+            throw new ArgumentException("El periodo es requerido.");
+
+        // Validar formato de periodo (YYYY-MM)
+        if (!System.Text.RegularExpressions.Regex.IsMatch(novedad.Periodo, @"^\d{4}-\d{2}$"))
+            throw new ArgumentException("El periodo debe tener el formato YYYY-MM (ejemplo: 2025-11).");
+
+        // Validar parámetro
+        if (string.IsNullOrWhiteSpace(novedad.ID_Parametro))
+            throw new ArgumentException("El ID del parámetro es requerido.");
+
+        // Validar tipo de novedad
+        if (string.IsNullOrWhiteSpace(novedad.TipoNovedad))
+            throw new ArgumentException("El tipo de novedad es requerido.");
+
+        var tipoNormalizado = novedad.TipoNovedad.Trim().ToUpper();
+        if (tipoNormalizado != "INGRESO" && tipoNormalizado != "EGRESO")
+            throw new ArgumentException("El tipo de novedad debe ser 'INGRESO' o 'EGRESO'.");
+
+        // Validar monto aplicado
+        if (novedad.MontoAplicado < 0)
+            throw new ArgumentException("El monto aplicado no puede ser negativo.");
+    }
+
+    private string NormalizarPeriodo(string periodo)
+    {
+        if (string.IsNullOrWhiteSpace(periodo))
+            throw new ArgumentException("El periodo es requerido.");
+
+        // Normalizar formato: eliminar espacios, convertir a mayúsculas
+        periodo = periodo.Trim().ToUpper();
+
+        // Validar formato YYYY-MM
+        if (!System.Text.RegularExpressions.Regex.IsMatch(periodo, @"^\d{4}-\d{2}$"))
+            throw new ArgumentException("El periodo debe tener el formato YYYY-MM (ejemplo: 2025-11).");
+
+        return periodo;
     }
 }

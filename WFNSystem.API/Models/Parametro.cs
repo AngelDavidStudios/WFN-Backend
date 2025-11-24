@@ -7,7 +7,7 @@ public class Parametro
 {
     // PK fijo para agrupar todos los parámetros
     [DynamoDBHashKey]
-    public string PK { get; set; } = "PARAMETRO";
+    public string PK { get; set; } = "PARAM#GLOBAL";
 
     // SK = PARAM#<id_parametro>
     [DynamoDBRangeKey]
@@ -35,5 +35,5 @@ public class Parametro
 
     // Auditoría
     [DynamoDBProperty]
-    public string DateCreated { get; set; }
+    public string DateCreated { get; set; } = string.Empty;
 }

@@ -66,7 +66,12 @@ public class WorkspaceController : ControllerBase
         try
         {
             var creado = await _workspaceService.CrearPeriodoAsync(periodo);
-            return CreatedAtAction(nameof(GetByPeriodo), new { periodo }, creado);
+            return CreatedAtAction(nameof(GetByPeriodo), new { periodo = creado.Periodo }, creado);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al crear workspace para periodo {Periodo}", periodo);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -85,6 +90,11 @@ public class WorkspaceController : ControllerBase
         {
             var cerrado = await _workspaceService.CerrarPeriodoAsync(periodo);
             return Ok(cerrado);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al cerrar workspace del periodo {Periodo}", periodo);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -108,6 +118,11 @@ public class WorkspaceController : ControllerBase
             var updated = await _workspaceService.UpdateAsync(workspace);
             return Ok(updated);
         }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al actualizar workspace");
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al actualizar workspace");
@@ -129,6 +144,11 @@ public class WorkspaceController : ControllerBase
                 return NotFound(new { message = $"No existe un workspace para el período {periodo}" });
 
             return Ok(new { message = "Workspace eliminado correctamente" });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al eliminar workspace del periodo {Periodo}", periodo);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {

@@ -32,6 +32,9 @@ public class EmpleadoService: IEmpleadoService
 
     public async Task<Empleado> CreateAsync(Empleado empleado)
     {
+        // Validaciones de negocio
+        ValidarEmpleado(empleado);
+
         // Validar que Persona exista
         var persona = await _personaRepo.GetByIdAsync(empleado.ID_Persona);
         if (persona == null)
@@ -49,8 +52,11 @@ public class EmpleadoService: IEmpleadoService
         empleado.PK = $"EMP#{empleado.ID_Empleado}";
         empleado.SK = "META#EMP";
 
+        // Validar y ajustar configuración de Fondo de Reserva
+        AjustarFondoReserva(empleado);
+
         // Fecha ISO
-        empleado.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        empleado.DateCreated = DateTime.UtcNow.ToString("yyyy-MM-dd");
 
         await _repo.AddAsync(empleado);
         return empleado;
@@ -62,6 +68,9 @@ public class EmpleadoService: IEmpleadoService
         var exists = await _repo.GetByIdAsync(empleado.ID_Empleado);
         if (exists == null)
             throw new Exception("El empleado que intenta actualizar no existe.");
+
+        // Validaciones de negocio
+        ValidarEmpleado(empleado);
 
         // Validar Persona
         var persona = await _personaRepo.GetByIdAsync(empleado.ID_Persona);
@@ -77,6 +86,12 @@ public class EmpleadoService: IEmpleadoService
         empleado.PK = $"EMP#{empleado.ID_Empleado}";
         empleado.SK = "META#EMP";
 
+        // Validar y ajustar configuración de Fondo de Reserva
+        AjustarFondoReserva(empleado);
+
+        // Preservar fecha de creación original
+        empleado.DateCreated = exists.DateCreated;
+
         await _repo.UpdateAsync(empleado);
         return empleado;
     }
@@ -89,5 +104,47 @@ public class EmpleadoService: IEmpleadoService
 
         await _repo.DeleteAsync(empleadoId);
         return true;
+    }
+
+    // ============================================================
+    // MÉTODOS PRIVADOS DE VALIDACIÓN
+    // ============================================================
+
+    private void ValidarEmpleado(Empleado empleado)
+    {
+        // Validar salario base
+        if (empleado.SalarioBase <= 0)
+            throw new ArgumentException("El salario base debe ser mayor a cero.");
+
+        if (empleado.SalarioBase < 460) // SBU Ecuador 2025
+            throw new ArgumentException("El salario base no puede ser menor al SBU ($460).");
+
+        // Validar fecha de ingreso
+        if (empleado.FechaIngreso == default)
+            throw new ArgumentException("La fecha de ingreso es requerida.");
+
+        if (empleado.FechaIngreso > DateTime.UtcNow)
+            throw new ArgumentException("La fecha de ingreso no puede ser futura.");
+
+        // Validar referencias
+        if (string.IsNullOrWhiteSpace(empleado.ID_Persona))
+            throw new ArgumentException("El ID de la persona es requerido.");
+
+        if (string.IsNullOrWhiteSpace(empleado.ID_Departamento))
+            throw new ArgumentException("El ID del departamento es requerido.");
+    }
+
+    private void AjustarFondoReserva(Empleado empleado)
+    {
+        // Calcular antigüedad
+        var antiguedad = DateTime.UtcNow - empleado.FechaIngreso;
+        var antiguedadAnios = antiguedad.TotalDays / 365.25;
+
+        // Fondos de Reserva solo aplica después de 1 año
+        if (antiguedadAnios < 1)
+        {
+            empleado.Is_FondoReserva = false;
+        }
+        // Si tiene más de 1 año y no está configurado, mantener el valor del usuario
     }
 }

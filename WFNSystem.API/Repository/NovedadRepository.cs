@@ -25,7 +25,7 @@ public class NovedadRepository: INovedadRepository
     public async Task<IEnumerable<Novedad>> GetByPeriodoAsync(string empleadoId, string periodo)
     {
         string pk = $"EMP#{empleadoId}";
-        string skPrefix = $"PERIODO#{periodo}#";
+        string skPrefix = $"NOV#{periodo}#";
 
         var query = _context.QueryAsync<Novedad>(pk, QueryOperator.BeginsWith, new[] { skPrefix });
 
@@ -35,7 +35,7 @@ public class NovedadRepository: INovedadRepository
     public async Task<Novedad?> GetByIdAsync(string empleadoId, string novedadId, string periodo)
     {
         string pk = $"EMP#{empleadoId}";
-        string sk = $"PERIODO#{periodo}#NOVEDAD#{novedadId}";
+        string sk = $"NOV#{periodo}#{novedadId}";
 
         return await _context.LoadAsync<Novedad>(pk, sk);
     }
@@ -53,7 +53,7 @@ public class NovedadRepository: INovedadRepository
     public async Task DeleteAsync(string empleadoId, string periodo, string novedadId)
     {
         string pk = $"EMP#{empleadoId}";
-        string sk = $"PERIODO#{periodo}#NOVEDAD#{novedadId}";
+        string sk = $"NOV#{periodo}#{novedadId}";
 
         await _context.DeleteAsync<Novedad>(pk, sk);
     }

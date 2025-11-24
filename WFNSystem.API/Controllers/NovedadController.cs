@@ -107,6 +107,11 @@ public class NovedadController : ControllerBase
                 created
             );
         }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al crear novedad para empleado {EmpleadoId}", empleadoId);
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear novedad para empleado {EmpleadoId}", empleadoId);
@@ -132,6 +137,11 @@ public class NovedadController : ControllerBase
 
             var updated = await _novedadService.UpdateAsync(empleadoId, novedad);
             return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validación fallida al actualizar novedad {NovedadId}", novedadId);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
