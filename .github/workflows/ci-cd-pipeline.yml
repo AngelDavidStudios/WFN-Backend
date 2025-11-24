@@ -45,7 +45,7 @@ on:
 env:
   DOTNET_VERSION: "8.0.x"
   AWS_REGION: us-east-1
-  PROJECT_PATH: WFNSystem.API/WFNSystem.API.csproj
+  PROJECT_PATH: WFN-Backend/WFNSystem.API.csproj
   PUBLISH_DIR: publish
   ZIP_FILE: function.zip
   LAMBDA_ALIAS: prod 
