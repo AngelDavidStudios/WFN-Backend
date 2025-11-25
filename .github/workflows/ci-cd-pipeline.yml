@@ -1,134 +1,144 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# This workflow will build, test, sign and package a WPF or Windows Forms desktop application
-# built on .NET Core.
-# To learn how to migrate your existing application to .NET Core,
-# refer to https://docs.microsoft.com/en-us/dotnet/desktop-wpf/migration/convert-project-from-net-framework
-#
-# To configure this workflow:
-#
-# 1. Configure environment variables
-# GitHub sets default environment variables for every workflow run.
-# Replace the variables relative to your project in the "env" section below.
-#
-# 2. Signing
-# Generate a signing certificate in the Windows Application
-# Packaging Project or add an existing signing certificate to the project.
-# Next, use PowerShell to encode the .pfx file using Base64 encoding
-# by running the following Powershell script to generate the output string:
-#
-# $pfx_cert = Get-Content '.\SigningCertificate.pfx' -Encoding Byte
-# [System.Convert]::ToBase64String($pfx_cert) | Out-File 'SigningCertificate_Encoded.txt'
-#
-# Open the output file, SigningCertificate_Encoded.txt, and copy the
-# string inside. Then, add the string to the repo as a GitHub secret
-# and name it "Base64_Encoded_Pfx."
-# For more information on how to configure your signing certificate for
-# this workflow, refer to https://github.com/microsoft/github-actions-for-desktop-apps#signing
-#
-# Finally, add the signing certificate password to the repo as a secret and name it "Pfx_Key".
-# See "Build the Windows Application Packaging project" below to see how the secret is used.
-#
-# For more information on GitHub Actions, refer to https://github.com/features/actions
-# For a complete CI/CD sample to get started with GitHub Action workflows for Desktop Applications,
-# refer to https://github.com/microsoft/github-actions-for-desktop-apps
+# ============================================================================
+# CI/CD Pipeline para WFN-Backend
+# Automatiza: Build → Test → Package → Deploy a AWS Lambda
+# ============================================================================
 
 name: CI/CD Pipeline AWS Lambda
 
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 env:
   DOTNET_VERSION: "8.0.x"
   AWS_REGION: us-east-1
-  PROJECT_PATH: WFN-Backend/WFNSystem.API.csproj
+  PROJECT_PATH: WFNSystem.API/WFNSystem.API.csproj
   PUBLISH_DIR: publish
   ZIP_FILE: function.zip
-  LAMBDA_ALIAS: prod 
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  checkout:
-    name: 1️⃣ Checkout
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
+  # ============================================================================
+  # 1️⃣ BUILD - Compilar el proyecto
+  # ============================================================================
   build:
-    name: 2️⃣ Build
-    needs: checkout
+    name: 1️⃣ Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Restore + Build
-        run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
 
+  # ============================================================================
+  # 2️⃣ TEST - Ejecutar tests con cobertura
+  # ============================================================================
   test:
-    name: 3️⃣ Test
+    name: 2️⃣ Test
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Restore (Test project only)
-        run: dotnet restore WFN-Backend/WFNSystem.Tests.csproj
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
+      
+      - name: Run tests with coverage
+        run: |
+          dotnet test WFNSystem.Tests/WFNSystem.Tests.csproj \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --logger "trx;LogFileName=test-results.trx" \
+            --collect:"XPlat Code Coverage"
+        continue-on-error: false
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            **/TestResults/*.trx
+            **/TestResults/**/*.coverage
+          retention-days: 30
 
-      - name: Build Test Project (No VSTest target)
-        run: dotnet build WFN-Backend/WFNSystem.Tests.csproj --configuration Release --no-restore /p:SkipVSTest=true
-
-      - name: Run unit tests
-        run: dotnet test WFN-Backend/WFNSystem.Tests.csproj --no-build --verbosity normal
-
-
+  # ============================================================================
+  # 3️⃣ PACKAGE - Crear ZIP para Lambda
+  # ============================================================================
   package:
-    name: 4️⃣ Package (.zip)
+    name: 3️⃣ Package
     needs: test
     runs-on: ubuntu-latest
     outputs:
       zip_path: ${{ steps.zipper.outputs.zip_path }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Publish .NET for Lambda
+      
+      - name: Publish for Lambda
         run: |
-          dotnet publish ${{ env.PROJECT_PATH }} -c Release -o ${{ env.PUBLISH_DIR }}
-      - name: Create deployment zip
+          dotnet publish ${{ env.PROJECT_PATH }} \
+            --configuration Release \
+            --output ${{ env.PUBLISH_DIR }}
+      
+      - name: Create deployment ZIP
         id: zipper
         run: |
           cd ${{ env.PUBLISH_DIR }}
           zip -rq ../${{ env.ZIP_FILE }} .
           echo "zip_path=${{ env.ZIP_FILE }}" >> $GITHUB_OUTPUT
-      - name: Upload artifact
+      
+      - name: Upload Lambda package
         uses: actions/upload-artifact@v4
         with:
           name: lambda-zip
           path: ${{ steps.zipper.outputs.zip_path }}
+          retention-days: 7
 
+  # ============================================================================
+  # 4️⃣ DEPLOY - Desplegar a AWS Lambda
+  # ============================================================================
   deploy:
-    name: 5️⃣ Deploy to Lambda
+    name: 4️⃣ Deploy
     needs: package
     runs-on: ubuntu-latest
     environment: production
+    # Solo desplegar en push a main (no en PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Download artifact
+      - name: Download Lambda package
         uses: actions/download-artifact@v4
         with:
           name: lambda-zip
@@ -140,8 +150,19 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Update Lambda code
+      - name: Update Lambda function code
         run: |
           aws lambda update-function-code \
             --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}" \
             --zip-file "fileb://${{ env.ZIP_FILE }}"
+      
+      - name: Wait for Lambda update
+        run: |
+          aws lambda wait function-updated \
+            --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}"
+      
+      - name: Publish Lambda version
+        run: |
+          aws lambda publish-version \
+            --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}" \
+            --description "Deploy from GitHub Actions - ${{ github.sha }}"
