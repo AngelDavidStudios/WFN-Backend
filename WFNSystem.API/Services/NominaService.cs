@@ -217,7 +217,7 @@ public class NominaService : INominaService
         // DÉCIMO TERCERO: Se transfiere en NOVIEMBRE (mes 11)
         if (mes == 11 && !empleado.Is_DecimoTercMensual)
         {
-            var provD13 = await ObtenerProvisionAcumuladaAsync(empleado.ID_Empleado, "DECIMO_TERCERO");
+            var provD13 = await ObtenerProvisionAcumuladaAsync(empleado.ID_Empleado, "DECIMO_TERCERO_ACUMULADO");
             if (provD13 != null && provD13.Acumulado > 0)
             {
                 totalNoGravado += provD13.Acumulado;  // ✅ NO GRAVABLE
@@ -234,7 +234,7 @@ public class NominaService : INominaService
         // DÉCIMO CUARTO: Se transfiere en JULIO (mes 7)
         if (mes == 7 && !empleado.Is_DecimoCuartoMensual)
         {
-            var provD14 = await ObtenerProvisionAcumuladaAsync(empleado.ID_Empleado, "DECIMO_CUARTO");
+            var provD14 = await ObtenerProvisionAcumuladaAsync(empleado.ID_Empleado, "DECIMO_CUARTO_ACUMULADO");
             if (provD14 != null && provD14.Acumulado > 0)
             {
                 totalNoGravado += provD14.Acumulado;  // ✅ NO GRAVABLE
@@ -321,10 +321,10 @@ public class NominaService : INominaService
         // 3. Tipos soportados
         var tipos = new[]
         {
-            "VACACIONES",
-            "DECIMO_TERCERO",
-            "DECIMO_CUARTO",
-            "FONDO_RESERVA",
+            "PROVISION_VACACIONES",
+            "DECIMO_TERCERO_ACUMULADO",
+            "DECIMO_CUARTO_ACUMULADO",
+            "FONDOS_RESERVA_ACUMULADO",
             "IESS_PATRONAL"
         };
 

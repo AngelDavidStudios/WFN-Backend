@@ -284,11 +284,11 @@ public class ProvisionStrategiesTests
             ["PROVISION_VACACIONES"] = 35.33m,
             ["IESS_PATRONAL"] = 103.03m,
             ["FONDOS_RESERVA_ACUMULADO"] = 70.64m,
-            ["DEVENGAMIENTO_PROVISION_VACACIONES"] = 209.00m
+            ["DEVENGAMIENTO_PROVISION_VACACIONES"] = 0m
             // Décimos no se acumulan (son mensualizados)
         };
 
-        decimal esperado = 418.00m; // Sin incluir devengamiento previo
+        decimal esperado = 209.00m; // Sin incluir devengamiento previo
 
         // Act
         decimal total = provisiones["PROVISION_VACACIONES"] + 

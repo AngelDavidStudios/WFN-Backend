@@ -74,8 +74,6 @@ jobs:
             --verbosity normal \
             --logger "trx;LogFileName=test-results.trx" \
             --collect:"XPlat Code Coverage"
-        # Ignorar 3 tests fallando temporalmente (ver RESUMEN.md para detalles)
-        continue-on-error: true
       
       - name: Upload test results
         uses: actions/upload-artifact@v4

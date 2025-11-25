@@ -121,9 +121,9 @@ public class ProvisionService: IProvisionService
         // Lista de provisiones a procesar
         var provisionesAProcesar = new List<(string Tipo, decimal ValorMensual)>
         {
-            ("DECIMO_TERCERO", decimoTercero),
-            ("DECIMO_CUARTO", decimoCuarto),
-            ("FONDOS_RESERVA", fondos)
+            ("DECIMO_TERCERO_ACUMULADO", decimoTercero),
+            ("DECIMO_CUARTO_ACUMULADO", decimoCuarto),
+            ("FONDOS_RESERVA_ACUMULADO", fondos)
         };
 
         foreach (var p in provisionesAProcesar)

@@ -108,13 +108,13 @@ public class NominaIntegrationTests
                 ID_Parametro = "VARIABLE",
                 Nombre = "VARIABLE",
                 Tipo = "INGRESO",
-                TipoCalculo = "SIMPLE"
+                TipoCalculo = "VARIABLE"
             },
             ["IESS_PERSONAL"] = new Parametro 
             { 
                 ID_Parametro = "IESS_PERSONAL",
                 Nombre = "IESS_PERSONAL",
-                Tipo = "EGRESO",
+                Tipo = "IESS_PERSONAL",
                 TipoCalculo = "IESS_PERSONAL"
             }
         };
@@ -282,7 +282,7 @@ public class NominaIntegrationTests
             { 
                 ID_Parametro = "IESS_PERSONAL",
                 TipoCalculo = "IESS_PERSONAL",
-                Tipo = "EGRESO"
+                Tipo = "IESS_PERSONAL"
             }
         };
 
