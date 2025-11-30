@@ -2,6 +2,9 @@ using WFNSystem.API.Config;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add service defaults & Aspire client integrations.
+builder.AddServiceDefaults();
+
 // --- Servicios base ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
