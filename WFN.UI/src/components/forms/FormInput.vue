@@ -4,7 +4,7 @@ import { computed } from 'vue'
 interface Props {
   modelValue: string | number
   label?: string
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'date'
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'date' | 'month'
   placeholder?: string
   error?: string
   required?: boolean

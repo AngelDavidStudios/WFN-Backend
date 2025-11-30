@@ -6,6 +6,7 @@ import { useUIStore } from '@/stores'
 import type { EmpleadoCreateDTO, Persona, Departamento, DropdownOption } from '@/types'
 import { StatusLaboral } from '@/types'
 import { STATUS_LABORAL_OPTIONS } from '@/constants'
+import { hasWorkedMoreThanOneYear } from '@/utils'
 import FormInput from '@/components/forms/FormInput.vue'
 import FormSelect from '@/components/forms/FormSelect.vue'
 import FormCheckbox from '@/components/forms/FormCheckbox.vue'
@@ -95,10 +96,7 @@ function validate(): boolean {
 
   // Validar fondos de reserva (solo si tiene más de 1 año)
   if (form.value.is_FondoReserva && form.value.fechaIngreso) {
-    const fechaIngreso = new Date(form.value.fechaIngreso)
-    const hoy = new Date()
-    const diffYears = (hoy.getTime() - fechaIngreso.getTime()) / (1000 * 60 * 60 * 24 * 365)
-    if (diffYears < 1) {
+    if (!hasWorkedMoreThanOneYear(form.value.fechaIngreso)) {
       errors.value.is_FondoReserva = 'Fondos de reserva solo aplica para empleados con más de 1 año'
     }
   }

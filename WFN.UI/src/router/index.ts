@@ -127,43 +127,55 @@ const routes: RouteRecordRaw[] = [
         meta: { module: 'nominas' },
       },
 
-      // Placeholder routes for other modules
+      // Novedades routes
       {
         path: 'novedades',
         name: 'novedades',
-        component: () => import('@/views/PlaceholderView.vue'),
-        meta: { module: 'novedades', title: 'Novedades' },
+        component: () => import('@/views/novedades/NovedadListView.vue'),
+        meta: { module: 'novedades' },
       },
+
+      // Banking routes (placeholder)
       {
         path: 'banking',
         name: 'banking',
         component: () => import('@/views/PlaceholderView.vue'),
         meta: { module: 'banking', title: 'Banking' },
       },
+
+      // Provisiones routes (placeholder)
       {
         path: 'provisiones',
         name: 'provisiones',
         component: () => import('@/views/PlaceholderView.vue'),
         meta: { module: 'provisiones', title: 'Provisiones' },
       },
+
+      // Parámetros routes
       {
         path: 'parametros',
         name: 'parametros',
-        component: () => import('@/views/PlaceholderView.vue'),
-        meta: { module: 'parametros', title: 'Parámetros' },
+        component: () => import('@/views/parametros/ParametroListView.vue'),
+        meta: { module: 'parametros' },
       },
+
+      // Workspaces routes
       {
         path: 'workspaces',
         name: 'workspaces',
-        component: () => import('@/views/PlaceholderView.vue'),
-        meta: { module: 'workspaces', title: 'Workspaces' },
+        component: () => import('@/views/workspaces/WorkspaceListView.vue'),
+        meta: { module: 'workspaces' },
       },
+
+      // Reportes routes (placeholder)
       {
         path: 'reportes',
         name: 'reportes',
         component: () => import('@/views/PlaceholderView.vue'),
         meta: { module: 'reportes', title: 'Reportes' },
       },
+
+      // Administración routes (placeholder)
       {
         path: 'administracion',
         name: 'administracion',

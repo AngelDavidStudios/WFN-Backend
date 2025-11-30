@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios'
+import { STORAGE_KEYS } from '@/utils/helpers'
 
 // Create axios instance with default configuration
 const axiosInstance: AxiosInstance = axios.create({
@@ -14,7 +15,7 @@ const axiosInstance: AxiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Get token from localStorage if available
-    const token = localStorage.getItem('access_token')
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -38,7 +39,7 @@ axiosInstance.interceptors.response.use(
       switch (status) {
         case 401:
           // Unauthorized - clear token and redirect to login
-          localStorage.removeItem('access_token')
+          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
           if (window.location.pathname !== '/login') {
             window.location.href = '/login'
           }

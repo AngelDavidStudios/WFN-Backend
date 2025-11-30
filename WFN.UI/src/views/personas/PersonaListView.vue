@@ -33,7 +33,9 @@ async function loadPersonas() {
     const data = await api.persona.getAll()
     personas.value = data.map((p) => ({
       ...p,
-      nombreCompleto: `${p.primerNombre} ${p.segundoNombre || ''} ${p.apellidoPaterno} ${p.apellidoMaterno}`.trim(),
+      nombreCompleto: [p.primerNombre, p.segundoNombre, p.apellidoPaterno, p.apellidoMaterno]
+        .filter(Boolean)
+        .join(' '),
       correoDisplay: p.correo?.[0] || '-',
       telefonoDisplay: p.telefono?.[0] || '-',
     }))
