@@ -21,7 +21,7 @@ const deleting = ref(false)
 const columns = [
   { key: 'dni', label: 'DNI', width: '120px' },
   { key: 'nombreCompleto', label: 'Nombre Completo' },
-  { key: 'gender', label: 'Género', width: '100px' },
+  { key: 'genderDisplay', label: 'Género', width: '100px' },
   { key: 'edad', label: 'Edad', width: '80px', align: 'center' as const },
   { key: 'correoDisplay', label: 'Correo' },
   { key: 'telefonoDisplay', label: 'Teléfono', width: '150px' },
@@ -36,12 +36,14 @@ async function loadPersonas() {
       nombreCompleto: [p.primerNombre, p.segundoNombre, p.apellidoPaterno, p.apellidoMaterno]
         .filter(Boolean)
         .join(' '),
+      genderDisplay: p.gender === 'M' ? 'Masculino' : p.gender === 'F' ? 'Femenino' : 'Otro',
       correoDisplay: p.correo?.[0] || '-',
       telefonoDisplay: p.telefono?.[0] || '-',
     }))
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error loading personas:', error)
-    uiStore.notifyError('Error', 'No se pudieron cargar las personas')
+    const errorMessage = error.response?.data?.message || 'No se pudieron cargar las personas'
+    uiStore.notifyError('Error', errorMessage)
   } finally {
     loading.value = false
   }
@@ -73,9 +75,10 @@ async function handleDelete() {
     uiStore.notifySuccess('Éxito', 'Persona eliminada correctamente')
     deleteModalOpen.value = false
     await loadPersonas()
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting persona:', error)
-    uiStore.notifyError('Error', 'No se pudo eliminar la persona')
+    const errorMessage = error.response?.data?.message || 'No se pudo eliminar la persona'
+    uiStore.notifyError('Error', errorMessage)
   } finally {
     deleting.value = false
     personaToDelete.value = null

@@ -9,6 +9,7 @@ const DashboardView = () => import('@/views/dashboard/DashboardView.vue')
 
 // Personas
 const PersonaListView = () => import('@/views/personas/PersonaListView.vue')
+const PersonaDetailView = () => import('@/views/personas/PersonaDetailView.vue')
 const PersonaFormView = () => import('@/views/personas/PersonaFormView.vue')
 
 // Empleados
@@ -63,7 +64,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'personas/:id',
         name: 'persona-view',
-        component: PersonaFormView,
+        component: PersonaDetailView,
         meta: { module: 'personas' },
       },
       {

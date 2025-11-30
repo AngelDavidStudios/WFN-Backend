@@ -68,12 +68,48 @@ async function loadPersona() {
 function validate(): boolean {
   errors.value = {}
 
-  if (!form.value.dni) errors.value.dni = 'El DNI es requerido'
-  if (!form.value.primerNombre) errors.value.primerNombre = 'El primer nombre es requerido'
-  if (!form.value.apellidoPaterno) errors.value.apellidoPaterno = 'El apellido paterno es requerido'
-  if (!form.value.apellidoMaterno) errors.value.apellidoMaterno = 'El apellido materno es requerido'
-  if (!form.value.gender) errors.value.gender = 'El género es requerido'
-  if (!form.value.dateBirthday) errors.value.dateBirthday = 'La fecha de nacimiento es requerida'
+  // DNI validation
+  if (!form.value.dni) {
+    errors.value.dni = 'El DNI es requerido'
+  } else if (form.value.dni.length < 10) {
+    errors.value.dni = 'El DNI debe tener al menos 10 caracteres'
+  }
+
+  // Nombres validation
+  if (!form.value.primerNombre) {
+    errors.value.primerNombre = 'El primer nombre es requerido'
+  }
+  if (!form.value.apellidoPaterno) {
+    errors.value.apellidoPaterno = 'El apellido paterno es requerido'
+  }
+  if (!form.value.apellidoMaterno) {
+    errors.value.apellidoMaterno = 'El apellido materno es requerido'
+  }
+
+  // Gender validation
+  if (!form.value.gender) {
+    errors.value.gender = 'El género es requerido'
+  }
+
+  // Date validation
+  if (!form.value.dateBirthday) {
+    errors.value.dateBirthday = 'La fecha de nacimiento es requerida'
+  } else {
+    const birthday = new Date(form.value.dateBirthday)
+    const today = new Date()
+    if (birthday >= today) {
+      errors.value.dateBirthday = 'La fecha de nacimiento debe ser anterior a hoy'
+    }
+  }
+
+  // Email validation
+  const nonEmptyEmails = form.value.correo.filter((e) => e.trim())
+  for (const email of nonEmptyEmails) {
+    if (!email.includes('@') || !email.includes('.')) {
+      errors.value.correo = 'Uno o más correos no son válidos'
+      break
+    }
+  }
 
   return Object.keys(errors.value).length === 0
 }
@@ -83,27 +119,37 @@ async function handleSubmit() {
 
   saving.value = true
   try {
-    // Filter empty values from arrays
-    const data: PersonaCreateDTO = {
-      ...form.value,
-      correo: form.value.correo.filter((c) => c.trim()),
-      telefono: form.value.telefono.filter((t) => t.trim()),
+    // Prepare data according to backend model
+    const data: any = {
+      dni: form.value.dni.trim(),
+      gender: form.value.gender,
+      primerNombre: form.value.primerNombre.trim(),
+      segundoNombre: form.value.segundoNombre?.trim() || '',
+      apellidoPaterno: form.value.apellidoPaterno.trim(),
+      apellidoMaterno: form.value.apellidoMaterno.trim(),
+      dateBirthday: form.value.dateBirthday,
+      correo: form.value.correo.filter((c) => c.trim()).map((c) => c.trim()),
+      telefono: form.value.telefono.filter((t) => t.trim()).map((t) => t.trim()),
+      direccion: {
+        calle: form.value.direccion.calle?.trim() || '',
+        numero: form.value.direccion.numero?.trim() || '',
+        piso: form.value.direccion.piso?.trim() || '',
+      },
     }
 
     if (isEdit.value) {
-      await api.persona.update(route.params.id as string, {
-        ...data,
-        id_Persona: route.params.id as string,
-      })
+      data.id_Persona = route.params.id as string
+      await api.persona.update(route.params.id as string, data)
       uiStore.notifySuccess('Éxito', 'Persona actualizada correctamente')
     } else {
       await api.persona.create(data)
       uiStore.notifySuccess('Éxito', 'Persona creada correctamente')
     }
     router.push('/personas')
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving persona:', error)
-    uiStore.notifyError('Error', 'No se pudo guardar la persona')
+    const errorMessage = error.response?.data?.message || error.message || 'No se pudo guardar la persona'
+    uiStore.notifyError('Error', errorMessage)
   } finally {
     saving.value = false
   }
@@ -169,7 +215,10 @@ onMounted(() => {
               label="DNI / Cédula"
               placeholder="0123456789"
               required
+              minlength="10"
+              maxlength="13"
               :error="errors.dni"
+              help-text="Mínimo 10 caracteres"
             />
             <FormSelect
               v-model="form.gender"
@@ -183,6 +232,7 @@ onMounted(() => {
               type="date"
               label="Fecha de Nacimiento"
               required
+              :max="new Date().toISOString().split('T')[0]"
               :error="errors.dateBirthday"
             />
           </div>
@@ -235,6 +285,7 @@ onMounted(() => {
                 v-model="form.correo[index]"
                 type="email"
                 class="input flex-1"
+                :class="{ 'border-red-500': errors.correo }"
                 placeholder="correo@ejemplo.com"
               />
               <button
@@ -246,6 +297,7 @@ onMounted(() => {
                 -
               </button>
             </div>
+            <p v-if="errors.correo" class="text-sm text-red-600">{{ errors.correo }}</p>
             <button type="button" class="btn-secondary btn-sm" @click="addEmail">
               + Agregar correo
             </button>
@@ -260,6 +312,7 @@ onMounted(() => {
                 type="tel"
                 class="input flex-1"
                 placeholder="0999999999"
+                maxlength="10"
               />
               <button
                 type="button"
