@@ -1,0 +1,4134 @@
+================================================================================
+PLAN DE DESARROLLO FRONTEND - SISTEMA DE NÓMINAS WFN
+================================================================================
+Fecha: 29 de Noviembre, 2025
+Stack: Vue.js 3 + TypeScript + Pinia + Vue Router + TailwindCSS + Axios
+
+================================================================================
+FASE 1: CONFIGURACIÓN Y ESTRUCTURA BASE
+================================================================================
+
+1.1 Configuración Inicial
+--------------------------
+□ Configurar variables de entorno (.env)
+  - VITE_API_BASE_URL (URL del backend)
+  - VITE_APP_NAME
+  - VITE_APP_VERSION
+
+□ Configurar Axios interceptors
+  - Crear instancia base de axios
+  - Configurar headers por defecto
+  - Manejo de errores globales
+  - Interceptor para token de autenticación (futuro SSO)
+
+□ Implementar Patrón de Diseño Facade para APIs
+  - Crear API Facade (api/apiFacade.ts)
+    * Centralizar todas las llamadas a los servicios
+    * Interfaz unificada y simplificada
+    * Abstracción de la complejidad de axios
+  - Ventajas:
+    * Punto único de acceso a todas las APIs
+    * Facilita el cambio de librería HTTP si es necesario
+    * Simplifica el testing (mock de un solo punto)
+    * Mejora el mantenimiento del código
+  - Estructura:
+    apiFacade.ts
+      ├── empleadoAPI    - Fachada para empleados
+      ├── departamentoAPI - Fachada para departamentos
+      ├── nominaAPI      - Fachada para nóminas
+      ├── novedadAPI     - Fachada para novedades
+      ├── provisionAPI   - Fachada para provisiones
+      ├── parametroAPI   - Fachada para parámetros
+      ├── workspaceAPI   - Fachada para workspaces
+      ├── personaAPI     - Fachada para personas
+      └── bankingAPI     - Fachada para cuentas bancarias
+
+□ Estructura de carpetas
+  /src
+    /assets         - Imágenes, iconos, fuentes
+    /components     - Componentes reutilizables
+      /common       - Botones, inputs, modales, etc.
+      /layout       - Navbar, Sidebar, Footer
+      /charts       - Gráficos y visualizaciones
+    /views          - Páginas/Vistas principales
+    /router         - Configuración de rutas
+    /stores         - Estado global con Pinia
+    /api            - Patrón Facade para APIs
+      apiFacade.ts  - Fachada principal
+      axiosInstance.ts - Instancia configurada de Axios
+    /services       - Servicios de negocio (usan la Facade)
+    /types          - Definiciones TypeScript
+    /utils          - Funciones utilitarias
+    /composables    - Composables de Vue
+
+1.2 Definición de Tipos TypeScript
+-----------------------------------
+□ Crear interfaces basadas en modelos del backend:
+  - Persona.ts
+  - Empleado.ts
+  - Departamento.ts
+  - Nomina.ts
+  - Novedad.ts
+  - Parametro.ts
+  - Banking.ts
+  - Provision.ts
+  - Workspace.ts
+
+□ Crear tipos auxiliares:
+  - ApiResponse.ts
+  - PaginationParams.ts
+  - FilterParams.ts
+  - ErrorResponse.ts
+
+1.3 Implementación del Patrón Facade para APIs
+-----------------------------------------------
+□ Paso 1: Crear instancia base de Axios (api/axiosInstance.ts)
+  - Configurar baseURL desde variables de entorno
+  - Configurar timeout
+  - Configurar headers por defecto (Content-Type, Accept)
+  - Implementar interceptor de request (agregar token)
+  - Implementar interceptor de response (manejo de errores)
+  - Manejo centralizado de errores HTTP (401, 403, 404, 500)
+
+□ Paso 2: Crear Facade principal (api/apiFacade.ts)
+  - Importar instancia de axios
+  - Crear métodos genéricos reutilizables:
+    * get<T>(url: string, config?)
+    * post<T>(url: string, data?, config?)
+    * put<T>(url: string, data?, config?)
+    * delete<T>(url: string, config?)
+    * patch<T>(url: string, data?, config?)
+  - Manejo de errores tipado
+  - Transformación de respuestas consistente
+
+□ Paso 3: Crear Facades específicas por módulo
+  - api/facades/empleadoFacade.ts
+    * getEmpleados()
+    * getEmpleadoById(id)
+    * createEmpleado(data)
+    * updateEmpleado(id, data)
+    * deleteEmpleado(id)
+    * getEmpleadosByDepartamento(departamentoId)
+    
+  - api/facades/departamentoFacade.ts
+    * getDepartamentos()
+    * getDepartamentoById(id)
+    * createDepartamento(data)
+    * updateDepartamento(id, data)
+    * deleteDepartamento(id)
+    
+  - api/facades/nominaFacade.ts
+    * getNominasByEmpleado(empleadoId)
+    * getNominaByPeriodo(empleadoId, periodo)
+    * generarNomina(empleadoId, periodo)
+    * generarNominaMasiva(periodo)
+    * exportarNominaPDF(nominaId)
+    * exportarNominaExcel(nominaId)
+    
+  - api/facades/novedadFacade.ts
+    * getNovedades()
+    * getNovedadesByEmpleado(empleadoId)
+    * createNovedad(data)
+    * updateNovedad(id, data)
+    * deleteNovedad(id)
+    
+  - api/facades/provisionFacade.ts
+    * getProvisionesByEmpleado(empleadoId)
+    * getProvisionesConsolidadas()
+    
+  - api/facades/parametroFacade.ts
+    * getParametros()
+    * getParametrosByTipo(tipo)
+    * createParametro(data)
+    * updateParametro(id, data)
+    
+  - api/facades/workspaceFacade.ts
+    * getWorkspaces()
+    * getWorkspaceById(id)
+    * createWorkspace(data)
+    * updateWorkspace(id, data)
+    
+  - api/facades/personaFacade.ts
+    * getPersonas()
+    * getPersonaById(id)
+    * createPersona(data)
+    * updatePersona(id, data)
+    
+  - api/facades/bankingFacade.ts
+    * getBankingByPersona(personaId)
+    * createBanking(data)
+    * updateBanking(id, data)
+    * deleteBanking(id)
+
+□ Paso 4: Exportar todas las facades desde un índice
+  - api/index.ts
+    * Exportar todas las facades
+    * Facilitar imports: import { empleadoAPI, nominaAPI } from '@/api'
+
+□ Ventajas del Patrón Facade implementado:
+  ✓ Separación de responsabilidades
+  ✓ Código más limpio y mantenible
+  ✓ Fácil de testear (mock de facades)
+  ✓ Centralización del manejo de errores
+  ✓ Consistencia en las llamadas HTTP
+  ✓ Facilita cambios futuros en la capa de comunicación
+  ✓ Abstracción de la complejidad de Axios
+  ✓ Tipado fuerte con TypeScript
+
+================================================================================
+FASE 2: COMPONENTES BÁSICOS Y LAYOUT
+================================================================================
+
+2.1 Componentes Comunes (components/common)
+--------------------------------------------
+□ Button.vue
+  - Variantes: primary, secondary, danger, success
+  - Tamaños: sm, md, lg
+  - Estados: loading, disabled
+
+□ Input.vue
+  - Input de texto, número, fecha, select
+  - Validación y mensajes de error
+  - Icono opcional
+
+□ Card.vue
+  - Contenedor con título, subtítulo y acciones
+  - Variantes para diferentes usos
+
+□ Table.vue
+  - Tabla reutilizable con paginación
+  - Ordenamiento por columnas
+  - Acciones por fila
+  - Selección múltiple
+
+□ Modal.vue
+  - Modal genérico
+  - Confirmación de acciones
+  - Formularios
+
+□ Badge.vue
+  - Indicadores de estado
+  - Variantes de color
+
+□ LoadingSpinner.vue
+  - Indicador de carga
+
+□ Alert.vue
+  - Mensajes de éxito, error, warning, info
+
+2.2 Layout Principal (components/layout)
+-----------------------------------------
+□ MainLayout.vue
+  - Estructura general de la aplicación
+  - Sidebar + Contenido principal
+
+□ Navbar.vue
+  - Barra superior
+  - Logo, breadcrumbs
+  - Usuario y menú de perfil
+  - Notificaciones (futuro)
+
+□ Sidebar.vue
+  - Menú de navegación lateral
+  - Collapsible
+  - Items del menú:
+    * Dashboard
+    * Empleados
+    * Departamentos
+    * Nóminas
+    * Novedades
+    * Provisiones
+    * Parámetros
+    * Workspaces
+    * Reportes
+
+□ Breadcrumbs.vue
+  - Navegación de rutas
+
+================================================================================
+FASE 3: DESARROLLO DEL DASHBOARD
+================================================================================
+
+3.1 Vista Principal del Dashboard (views/Dashboard.vue)
+--------------------------------------------------------
+□ Resumen General - Tarjetas estadísticas (KPIs):
+  ├── Total de Empleados Activos
+  ├── Nóminas Procesadas del Mes
+  ├── Total en Nómina del Mes Actual
+  ├── Provisiones Acumuladas
+  └── Novedades Pendientes
+
+□ Gráficos y Visualizaciones:
+  ├── Gráfico de líneas: Evolución de nómina (últimos 6 meses)
+  ├── Gráfico de barras: Nómina por departamento
+  ├── Gráfico de pie: Distribución de egresos vs ingresos
+  └── Gráfico de barras: Provisiones acumuladas por tipo
+
+□ Tabla de Últimas Actividades:
+  ├── Últimas nóminas generadas
+  ├── Últimas novedades registradas
+  └── Link a ver más detalles
+
+□ Accesos Rápidos:
+  ├── Generar nueva nómina
+  ├── Registrar novedad
+  ├── Ver reportes
+  └── Agregar empleado
+
+3.2 Store de Dashboard (stores/dashboardStore.ts)
+--------------------------------------------------
+□ Estados:
+  - stats (estadísticas generales)
+  - chartData (datos para gráficos)
+  - recentActivities (actividades recientes)
+  - loading
+  - error
+
+□ Acciones:
+  - fetchDashboardStats()
+  - fetchChartData()
+  - fetchRecentActivities()
+
+3.3 Servicio API de Dashboard (services/dashboardService.ts)
+-------------------------------------------------------------
+□ Métodos:
+  - getStats() - Obtiene estadísticas generales
+  - getNominasByPeriod(months: number) - Datos para gráficos
+  - getRecentActivities(limit: number)
+
+3.4 Componentes del Dashboard (components/dashboard)
+-----------------------------------------------------
+□ StatCard.vue
+  - Tarjeta de estadística
+  - Icono, valor, título, cambio porcentual
+
+□ LineChart.vue
+  - Gráfico de líneas (usar librería como Chart.js o ApexCharts)
+
+□ BarChart.vue
+  - Gráfico de barras
+
+□ PieChart.vue
+  - Gráfico circular
+
+□ ActivityList.vue
+  - Lista de actividades recientes
+
+□ QuickActions.vue
+  - Botones de acceso rápido
+
+================================================================================
+FASE 4: MÓDULO DE EMPLEADOS
+================================================================================
+
+4.1 Vistas de Empleados
+------------------------
+□ EmpleadosList.vue
+  - Lista/tabla de todos los empleados
+  - Búsqueda y filtros (por departamento, estado, etc.)
+  - Paginación
+  - Acciones: Ver, Editar, Eliminar, Agregar
+
+□ EmpleadoDetail.vue
+  - Información detallada del empleado
+  - Tabs:
+    * Información Personal
+    * Información Laboral
+    * Cuentas Bancarias
+    * Nóminas Históricas
+    * Novedades
+    * Provisiones
+
+□ EmpleadoForm.vue
+  - Formulario para crear/editar empleado
+  - Validaciones
+  - Secciones:
+    * Datos de Persona
+    * Datos Laborales
+    * Configuración de Beneficios
+
+4.2 Reglas de Negocio y Variables del Backend
+----------------------------------------------
+📌 IMPORTANTE: Al llamar a las APIs de Empleado, considerar:
+
+□ VARIABLES AUTOMÁTICAS (generadas por el backend):
+  ✓ ID_Empleado        - GUID generado automáticamente en CREATE
+  ✓ PK                 - Construido como "EMP#{ID_Empleado}"
+  ✓ SK                 - Siempre "META#EMP"
+  ✓ DateCreated        - Fecha actual en formato ISO (YYYY-MM-DD)
+
+□ VARIABLES REQUERIDAS (el usuario DEBE proporcionar):
+  ⚠ ID_Persona         - Referencia a persona existente (validada)
+  ⚠ ID_Departamento    - Referencia a departamento existente (validada)
+  ⚠ FechaIngreso       - DateTime de ingreso del empleado
+  ⚠ SalarioBase        - Decimal, debe ser mayor a 0
+  ⚠ Is_DecimoTercMensual   - Boolean (true = mensualizado, false = acumulado)
+  ⚠ Is_DecimoCuartoMensual - Boolean (true = mensualizado, false = acumulado)
+  ⚠ Is_FondoReserva    - Boolean (solo aplica si empleado > 1 año)
+  ⚠ StatusLaboral      - Enum (Active, Inactive, OnLeave, Retired)
+
+□ VALIDACIONES DEL BACKEND:
+  ✓ Persona debe existir antes de crear empleado
+  ✓ Departamento debe existir antes de crear empleado
+  ✓ SalarioBase debe ser > 0
+  ✓ FondoReserva solo se activa si FechaIngreso > 1 año
+    - Si empleado < 1 año, Is_FondoReserva se fuerza a FALSE
+  ✓ En UPDATE: DateCreated se preserva del registro original
+
+□ COMPORTAMIENTO DE CREATE (POST /api/empleado):
+  1. Usuario envía: ID_Persona, ID_Departamento, FechaIngreso, SalarioBase,
+                    Is_DecimoTercMensual, Is_DecimoCuartoMensual,
+                    Is_FondoReserva, StatusLaboral
+  2. Backend genera automáticamente: ID_Empleado, PK, SK, DateCreated
+  3. Backend valida existencia de Persona y Departamento
+  4. Backend ajusta Is_FondoReserva según antigüedad
+  5. Backend retorna empleado completo con ID generado
+
+□ COMPORTAMIENTO DE UPDATE (PUT /api/empleado/{id}):
+  1. Usuario envía todos los campos (excepto ID_Empleado que va en URL)
+  2. Backend valida existencia del empleado
+  3. Backend sobreescribe ID_Empleado con el de la URL
+  4. Backend reconstruye PK y SK correctamente
+  5. Backend preserva DateCreated original
+  6. Backend valida Persona y Departamento
+  7. Backend ajusta Is_FondoReserva según antigüedad
+
+□ NOTAS PARA EL FRONTEND:
+  ⚠ No enviar ID_Empleado, PK, SK, DateCreated en CREATE
+  ⚠ En formularios de edición, no permitir modificar ID_Empleado
+  ⚠ Validar selección de Persona existente (dropdown/autocomplete)
+  ⚠ Validar selección de Departamento existente (dropdown)
+  ⚠ Calcular automáticamente si empleado puede tener FondoReserva
+    (mostrar advertencia si < 1 año de antigüedad)
+  ⚠ SalarioBase debe tener validación numérica > 0
+  ⚠ Formato de fecha: ISO 8601 para envío al backend
+
+5.3 Store de Empleados (stores/empleadoStore.ts)
+-------------------------------------------------
+□ Estados:
+  - empleados (lista)
+  - selectedEmpleado (empleado actual)
+  - loading
+  - error
+  - pagination
+
+□ Acciones:
+  - fetchEmpleados()
+  - fetchEmpleadoById(id)
+  - createEmpleado(empleado)     - NO incluir ID_Empleado, PK, SK, DateCreated
+  - updateEmpleado(id, empleado) - Incluir todos excepto DateCreated
+  - deleteEmpleado(id)
+  - fetchEmpleadosByDepartamento(departamentoId)
+
+5.4 Facade de Empleados (api/facades/empleadoFacade.ts)
+--------------------------------------------------------
+□ Métodos a implementar:
+  - getEmpleados()
+    * GET /api/empleado
+    * Retorna: Empleado[]
+    
+  - getEmpleadoById(id: string)
+    * GET /api/empleado/{id}
+    * Retorna: Empleado | null
+    
+  - createEmpleado(data: CreateEmpleadoDTO)
+    * POST /api/empleado
+    * Body: { ID_Persona, ID_Departamento, FechaIngreso, SalarioBase,
+             Is_DecimoTercMensual, Is_DecimoCuartoMensual, 
+             Is_FondoReserva, StatusLaboral }
+    * NO incluir: ID_Empleado, PK, SK, DateCreated
+    * Retorna: Empleado (con ID generado)
+    
+  - updateEmpleado(id: string, data: UpdateEmpleadoDTO)
+    * PUT /api/empleado/{id}
+    * Body: { ID_Persona, ID_Departamento, FechaIngreso, SalarioBase,
+             Is_DecimoTercMensual, Is_DecimoCuartoMensual, 
+             Is_FondoReserva, StatusLaboral }
+    * NO incluir: ID_Empleado (va en URL), DateCreated (preservado)
+    * Retorna: Empleado actualizado
+    
+  - deleteEmpleado(id: string)
+    * DELETE /api/empleado/{id}
+    * Retorna: { message: string }
+
+□ DTOs a crear (types/empleado.types.ts):
+  - Empleado (modelo completo del backend)
+  - CreateEmpleadoDTO (sin campos automáticos)
+  - UpdateEmpleadoDTO (sin campos automáticos)
+  - StatusLaboral (enum: Active, Inactive, OnLeave, Retired)
+
+================================================================================
+FASE 5: MÓDULO DE DEPARTAMENTOS
+================================================================================
+
+5.1 Vistas de Departamentos
+----------------------------
+□ DepartamentosList.vue
+  - Lista de departamentos
+  - Búsqueda
+  - Acciones CRUD
+
+□ DepartamentoForm.vue
+  - Formulario crear/editar
+
+5.2 Reglas de Negocio y Variables del Backend
+----------------------------------------------
+📌 IMPORTANTE: Al llamar a las APIs de Departamento, considerar:
+
+□ VARIABLES AUTOMÁTICAS (generadas por el backend):
+  ✓ ID_Departamento    - GUID generado automáticamente en CREATE
+  ✓ PK                 - Construido como "DEP#{ID_Departamento}"
+  ✓ SK                 - Siempre "META#DEP"
+  ✓ DateCreated        - Fecha actual en formato ISO (YYYY-MM-DD)
+
+□ VARIABLES REQUERIDAS (el usuario DEBE proporcionar):
+  ⚠ Nombre             - Nombre del departamento (string, no vacío)
+  ⚠ Ubicacion          - Ubicación física (string, puede ser vacío)
+  ⚠ Email              - Email del departamento (string)
+  ⚠ Telefono           - Teléfono de contacto (string)
+  ⚠ Cargo              - Cargo del jefe del departamento (string)
+  ⚠ CentroCosto        - Código de centro de costo (string)
+
+□ VALIDACIONES DEL BACKEND:
+  ✓ Nombre no puede estar vacío
+  ✓ En UPDATE: DateCreated se preserva del registro original
+
+□ COMPORTAMIENTO DE CREATE (POST /api/departamento):
+  1. Usuario envía: Nombre, Ubicacion, Email, Telefono, Cargo, CentroCosto
+  2. Backend genera: ID_Departamento, PK, SK, DateCreated
+  3. Backend retorna departamento completo con ID generado
+
+□ COMPORTAMIENTO DE UPDATE (PUT /api/departamento/{id}):
+  1. Usuario envía todos los campos (excepto ID_Departamento que va en URL)
+  2. Backend preserva DateCreated original
+  3. Backend reconstruye PK y SK correctamente
+
+□ NOTAS PARA EL FRONTEND:
+  ⚠ No enviar ID_Departamento, PK, SK, DateCreated en CREATE
+  ⚠ Validar que Nombre no esté vacío
+
+5.3 Store y Facade
+------------------
+□ departamentoStore.ts
+  - Estados: departamentos, selectedDepartamento, loading, error
+  - Acciones: fetchDepartamentos, fetchById, create, update, delete
+
+□ api/facades/departamentoFacade.ts
+  - getDepartamentos()        -> GET /api/departamento
+  - getDepartamentoById(id)   -> GET /api/departamento/{id}
+  - createDepartamento(data)  -> POST /api/departamento
+  - updateDepartamento(id, data) -> PUT /api/departamento/{id}
+  - deleteDepartamento(id)    -> DELETE /api/departamento/{id}
+
+================================================================================
+FASE 6: MÓDULO DE NÓMINAS
+================================================================================
+
+6.1 Vistas de Nóminas
+----------------------
+□ NominasList.vue
+  - Lista de nóminas generadas
+  - Filtros: por período, empleado, departamento
+  - Vista de resumen
+
+□ NominaDetail.vue
+  - Detalle completo de una nómina
+  - Secciones:
+    * Información del Empleado
+    * Ingresos (desglose detallado)
+    * Egresos (desglose detallado)
+    * Provisiones
+    * Total Neto a Pagar
+  - Acciones:
+    * Exportar PDF
+    * Exportar Excel
+    * Reimprimir
+
+□ NominaGenerate.vue
+  - Formulario para generar nueva nómina
+  - Selección de empleado(s)
+  - Selección de período
+  - Previsualización antes de generar
+  - Generación individual o masiva
+
+□ NominaCompare.vue
+  - Comparar nóminas de diferentes períodos
+  - Visualización de diferencias
+
+7.2 Reglas de Negocio y Variables del Backend
+----------------------------------------------
+📌 IMPORTANTE: Al llamar a las APIs de Nómina, considerar:
+
+□ VARIABLES AUTOMÁTICAS (generadas por el backend):
+  ✓ ID_Nomina          - GUID generado automáticamente en CREATE
+  ✓ PK                 - Construido como "EMP#{ID_Empleado}"
+  ✓ SK                 - Construido como "NOM#{Periodo}" (ej: "NOM#2025-11")
+  ✓ FechaCalculo       - Fecha actual ISO cuando se genera
+  ✓ Todos los cálculos:
+    - TotalIngresosGravados
+    - TotalIngresosNoGravados
+    - TotalIngresos
+    - TotalEgresos
+    - IESS_AportePersonal (9.45% de ingresos gravados)
+    - IR_Retenido (según tabla de impuesto a la renta)
+    - NetoAPagar (total ingresos - total egresos)
+
+□ VARIABLES REQUERIDAS (el usuario DEBE proporcionar):
+  ⚠ ID_Empleado        - Referencia al empleado (validado)
+  ⚠ Periodo            - Formato "YYYY-MM" (ej: "2025-11")
+
+□ ENDPOINTS PRINCIPALES:
+
+  - GENERAR NÓMINA INDIVIDUAL:
+    * POST /api/nomina/generar
+    * Body: { EmpleadoId: string, Periodo: string }
+    * El backend calcula automáticamente todos los valores
+    * Considera novedades del período
+    * Aplica estrategias de cálculo (ingresos, egresos, provisiones)
+    
+  - GENERAR NÓMINA MASIVA:
+    * POST /api/nomina/generar-masiva
+    * Body: { Periodo: string }
+    * Genera nómina para TODOS los empleados activos
+    * Retorna resumen de nóminas generadas
+    
+  - CONSULTAR NÓMINA:
+    * GET /api/nomina/empleado/{empleadoId}
+    * Retorna todas las nóminas del empleado
+    
+  - CONSULTAR NÓMINA POR PERÍODO:
+    * GET /api/nomina/empleado/{empleadoId}/periodo/{periodo}
+    * Retorna nómina específica de un período
+    
+  - EXPORTAR NÓMINA:
+    * GET /api/nomina/empleado/{empleadoId}/periodo/{periodo}/pdf
+    * GET /api/nomina/empleado/{empleadoId}/periodo/{periodo}/excel
+    * Genera archivos descargables
+
+□ VALIDACIONES DEL BACKEND:
+  ✓ Empleado debe existir y estar activo
+  ✓ No se puede generar nómina duplicada (mismo empleado + período)
+  ✓ Período debe tener formato válido YYYY-MM
+  ✓ Novedades se filtran automáticamente por período
+
+□ NOTAS PARA EL FRONTEND:
+  ⚠ No enviar campos calculados (totales, aportes, neto)
+  ⚠ Solo enviar EmpleadoId y Periodo
+  ⚠ Mostrar preview antes de generar nómina masiva
+  ⚠ Validar formato de período (YYYY-MM)
+  ⚠ Verificar si ya existe nómina antes de generar
+  ⚠ Deshabilitar edición de nómina cerrada (IsCerrada = true)
+
+7.3 Proceso de Cálculo de Nómina - Reglas de Negocio del Backend
+-----------------------------------------------------------------
+📌 IMPORTANTE: Entender el flujo completo de cálculo para mostrar correctamente en el frontend
+
+□ FLUJO COMPLETO DE GENERACIÓN DE NÓMINA (Backend):
+
+  ========== PASO 1: VALIDACIÓN INICIAL ==========
+  1. Validar que el periodo esté ABIERTO (Workspace.Estado = 0)
+  2. Validar que el empleado exista
+  3. Si ya existe nómina para ese empleado+periodo → Error
+
+  ========== PASO 2: CARGAR DATOS ==========
+  4. Cargar información del empleado
+  5. Cargar todas las novedades del periodo
+  6. Cargar todos los parámetros del sistema
+
+  ========== PASO 3: CÁLCULO DE INGRESOS ==========
+  7. Inicializar con Salario Base como INGRESO GRAVABLE
+  
+  8. Procesar NOVEDADES de tipo INGRESO (primero):
+     - Horas Extras 50%: ((SalarioBase/30/8) * 1.5) * NRO_H50
+     - Horas Extras 100%: ((SalarioBase/30/8) * 2.0) * NRO_H100
+     - Variables: Monto fijo definido en novedad
+     - Comisiones: Monto fijo definido en novedad
+     - Cada novedad se clasifica como GRAVABLE o NO GRAVABLE
+     - TOTAL INGRESOS GRAVADOS IESS = SalarioBase + Sum(Novedades Gravables)
+  
+  9. Calcular DÉCIMOS MENSUALIZADOS (si aplica):
+     ✓ Décimo Tercero Mensual: (TotalIngresosGravados / 12) → NO GRAVABLE
+     ✓ Décimo Cuarto Mensual: (470 / 12) = 39.17 → NO GRAVABLE
+     ✓ Fondos de Reserva Mensual: (TotalIngresosGravados * 8.33%) → NO GRAVABLE
+     
+     IMPORTANTE: Los décimos son INGRESOS NO GRAVABLES
+  
+  10. TRANSFERIR PROVISIONES ACUMULADAS (en mes correspondiente):
+      - Décimo Tercero Acumulado → Se transfiere en NOVIEMBRE (mes 11)
+      - Décimo Cuarto Acumulado → Se transfiere en JULIO (mes 7)
+      - Solo si NO son mensualizados
+      - Transferencia = Llevar acumulado a INGRESOS NO GRAVABLES
+      - Marcar provisión como "IsTransferred = true"
+  
+  11. Totales de Ingresos:
+      - TotalIngresosGravados (base para IESS e IR)
+      - TotalIngresosNoGravados (décimos, transporte, etc.)
+      - TotalIngresos = Gravados + NoGravados
+
+  ========== PASO 4: CÁLCULO DE EGRESOS ==========
+  12. Procesar NOVEDADES de tipo EGRESO:
+      - IESS Personal: TotalIngresosGravados * 9.45%
+      - IESS Extensión Cónyuge: SalarioBase * 3.41% (si aplica)
+      - Impuesto a la Renta: Según tabla progresiva (manual por ahora)
+      - Descuentos varios: Valores fijos de novedades
+        * Comisariato, Catering, Gimnasio
+        * Préstamos, Anticipos
+        * Faltas injustificadas
+        * Pensión alimenticia
+        * Otros descuentos
+  
+  13. Totales de Egresos:
+      - TotalEgresos = Sum(todos los egresos)
+      - IESS_AportePersonal (se guarda separado)
+      - IR_Retenido (se guarda separado)
+
+  ========== PASO 5: CÁLCULO DE PROVISIONES ==========
+  14. Generar provisiones mensuales (acumuladas):
+      
+      Para cada tipo de provisión:
+      a) Cargar provisión del mes anterior
+      b) Si la provisión anterior fue transferida → Reiniciar acumulado a 0
+      c) Calcular nuevo valor mensual según estrategia:
+         
+         - PROVISION_VACACIONES: TotalIngresosGravados / 24
+           * Se acumula mensualmente
+           * Se usa cuando el empleado toma vacaciones
+         
+         - IESS_PATRONAL: TotalIngresosGravados * 12.15%
+           * Obligación patronal mensual
+         
+         - FONDOS_RESERVA_ACUMULADO: 
+           * Solo si empleado > 1 año Y no es mensualizado
+           * TotalIngresosGravados * 8.33%
+           * Se acumula hasta transferir
+         
+         - DECIMO_TERCERO_ACUMULADO:
+           * Solo si NO es mensualizado
+           * TotalIngresosGravados / 12
+           * Se acumula desde diciembre hasta noviembre
+           * En noviembre se transfiere al rol
+         
+         - DECIMO_CUARTO_ACUMULADO:
+           * Solo si NO es mensualizado
+           * 470 / 12 = 39.17
+           * Se acumula desde agosto hasta julio
+           * En julio se transfiere al rol
+      
+      d) Acumulado = AcumuladoAnterior + ValorMensual
+      e) Guardar nueva provisión con estado "IsTransferred = false"
+
+  ========== PASO 6: CÁLCULO FINAL ==========
+  15. Neto a Pagar = TotalIngresos - TotalEgresos
+  
+  16. Guardar nómina con estado "IsCerrada = false"
+
+□ VISUALIZACIÓN EN EL FRONTEND:
+
+  La vista de detalle de nómina debe mostrar:
+  
+  📊 SECCIÓN 1: INFORMACIÓN DEL EMPLEADO
+  - Nombre completo
+  - Departamento
+  - Cargo
+  - Periodo
+  - Fecha de cálculo
+  
+  📊 SECCIÓN 2: INGRESOS
+  ├── INGRESOS GRAVABLES (afectan IESS e IR)
+  │   ├── Salario Base: $XXX.XX
+  │   ├── Horas Extras 50%: $XXX.XX (si aplica)
+  │   ├── Horas Extras 100%: $XXX.XX (si aplica)
+  │   ├── Variables: $XXX.XX (si aplica)
+  │   ├── Comisiones: $XXX.XX (si aplica)
+  │   └── SUBTOTAL GRAVADOS: $XXX.XX
+  │
+  └── INGRESOS NO GRAVABLES (no afectan IESS ni IR)
+      ├── Décimo Tercero Mensual: $XXX.XX (si mensualizado)
+      ├── Décimo Cuarto Mensual: $XXX.XX (si mensualizado)
+      ├── Fondos de Reserva Mensual: $XXX.XX (si aplica)
+      ├── Décimo Tercero Acumulado: $XXX.XX (solo en noviembre)
+      ├── Décimo Cuarto Acumulado: $XXX.XX (solo en julio)
+      ├── Transporte: $XXX.XX (si aplica)
+      └── SUBTOTAL NO GRAVADOS: $XXX.XX
+  
+  TOTAL INGRESOS: $XXX.XX
+  
+  📊 SECCIÓN 3: EGRESOS
+  ├── Aportes Obligatorios
+  │   ├── IESS Personal (9.45%): $XXX.XX
+  │   ├── IESS Extensión (3.41%): $XXX.XX (si aplica)
+  │   └── Impuesto a la Renta: $XXX.XX (si aplica)
+  │
+  └── Descuentos y Deducciones
+      ├── Comisariato: $XXX.XX
+      ├── Anticipos: $XXX.XX
+      ├── Préstamos: $XXX.XX
+      ├── Faltas: $XXX.XX
+      ├── Pensión Alimenticia: $XXX.XX
+      └── Otros: $XXX.XX
+  
+  TOTAL EGRESOS: $XXX.XX
+  
+  📊 SECCIÓN 4: PROVISIONES DEL MES
+  ├── Provisión Vacaciones: $XXX.XX (acumulado: $XXX.XX)
+  ├── IESS Patronal (12.15%): $XXX.XX
+  ├── Fondos Reserva Acum.: $XXX.XX (acumulado: $XXX.XX)
+  ├── Décimo 13° Acum.: $XXX.XX (acumulado: $XXX.XX)
+  └── Décimo 14° Acum.: $XXX.XX (acumulado: $XXX.XX)
+  
+  TOTAL PROVISIONES: $XXX.XX
+  
+  📊 SECCIÓN 5: RESUMEN FINAL
+  ┌─────────────────────────────────────┐
+  │ TOTAL INGRESOS:      $ XXX.XX      │
+  │ TOTAL EGRESOS:      -$ XXX.XX      │
+  │ ─────────────────────────────────  │
+  │ NETO A PAGAR:        $ XXX.XX      │
+  └─────────────────────────────────────┘
+
+□ COLORES Y BADGES SUGERIDOS:
+  - Ingresos Gravables: Verde oscuro 🟢
+  - Ingresos No Gravables: Verde claro 🟢
+  - Egresos Obligatorios: Naranja 🟠
+  - Otros Descuentos: Rojo claro 🔴
+  - Provisiones: Azul 🔵
+  - Neto a Pagar: Verde brillante (destacado) 💚
+
+□ VALIDACIONES IMPORTANTES EN EL FRONTEND:
+  ⚠ Mostrar advertencia si empleado tiene < 1 año (no puede tener Fondo Reserva)
+  ⚠ Indicar visualmente si los décimos son mensualizados o acumulados
+  ⚠ Mostrar badge "TRANSFERIDO" en provisiones acumuladas cuando aplique
+  ⚠ Indicar en qué mes se transfieren las provisiones acumuladas
+  ⚠ Deshabilitar generación si periodo no está abierto
+  ⚠ Mostrar confirmación antes de generar nómina (acción irreversible)
+  ⚠ Validar que no exista nómina duplicada antes de generar
+
+□ ACCIONES DISPONIBLES EN VISTA DE NÓMINA:
+  - 📄 Exportar PDF (con formato oficial)
+  - 📊 Exportar Excel (para análisis)
+  - 🖨️ Imprimir
+  - ✉️ Enviar por email al empleado
+  - 🔍 Ver historial de nóminas
+  - 📈 Comparar con periodo anterior
+
+7.5 Estrategias de Cálculo del Backend (Patrón Strategy)
+--------------------------------------------------------
+📌 IMPORTANTE: El backend usa el patrón Strategy para calcular cada tipo de ingreso, egreso y provisión.
+
+□ ESTRATEGIAS DE INGRESOS:
+
+  1. HorasExtras50Strategy
+     - Código: "HORAS_EXTRAS_50"
+     - Fórmula: ((SalarioBase / 30 / 8) * 1.5) * NumeroHoras
+     - Gravable: SÍ
+     - Uso: Novedades con horas extras al 50%
+  
+  2. HorasExtras100Strategy
+     - Código: "HORAS_EXTRAS_100"
+     - Fórmula: ((SalarioBase / 30 / 8) * 2.0) * NumeroHoras
+     - Gravable: SÍ
+     - Uso: Novedades con horas extras al 100%
+  
+  3. SimpleStrategy (Variables, Comisiones)
+     - Código: "SIMPLE"
+     - Fórmula: MontoAplicado (valor fijo de la novedad)
+     - Gravable: Según configuración de novedad
+     - Uso: Bonos, variables, comisiones
+  
+  4. DecimoTerceroStrategy (Mensualizado)
+     - Código: "DECIMO_TERCERO"
+     - Fórmula: TotalIngresosGravados / 12
+     - Gravable: NO
+     - Uso: Cuando Is_DecimoTercMensual = true
+  
+  5. DecimoCuartoStrategy (Mensualizado)
+     - Código: "DECIMO_CUARTO"
+     - Fórmula: 470 / 12 = 39.17
+     - Gravable: NO
+     - Uso: Cuando Is_DecimoCuartoMensual = true
+  
+  6. FondosReservaStrategy (Mensualizado)
+     - Código: "FONDOS_RESERVA"
+     - Fórmula: TotalIngresosGravados * 0.0833 (8.33%)
+     - Gravable: NO
+     - Uso: Cuando Is_FondoReserva = true
+
+□ ESTRATEGIAS DE EGRESOS:
+
+  1. IessPersonalStrategy
+     - Código: "IESS_PERSONAL"
+     - Fórmula: TotalIngresosGravados * 0.0945 (9.45%)
+     - Tipo: EGRESO
+     - Obligatorio: SÍ
+  
+  2. IessExtensionStrategy (Cónyuge)
+     - Código: "IESS_EXTENSION"
+     - Fórmula: SalarioBase * 0.0341 (3.41%)
+     - Tipo: EGRESO
+     - Obligatorio: Solo si tiene extensión
+  
+  3. ImpuestoStrategy (Renta)
+     - Código: "IMPUESTO_RENTA"
+     - Fórmula: Según tabla progresiva del SRI
+     - Tipo: EGRESO
+     - Obligatorio: Si supera base imponible
+  
+  4. SimpleEgresoStrategy
+     - Código: "EGRESO"
+     - Fórmula: MontoAplicado (valor fijo de la novedad)
+     - Tipo: EGRESO
+     - Uso: Descuentos varios (comisariato, anticipos, préstamos, faltas, etc.)
+
+□ ESTRATEGIAS DE PROVISIONES:
+
+  1. ProvisionVacacionesStrategy
+     - Código: "PROVISION_VACACIONES"
+     - Fórmula: TotalIngresosGravados / 24
+     - Acumulado: SÍ
+     - Uso: Se acumula mensualmente, se usa cuando empleado toma vacaciones
+  
+  2. IessPatronalStrategy
+     - Código: "IESS_PATRONAL"
+     - Fórmula: TotalIngresosGravados * 0.1215 (12.15%)
+     - Acumulado: NO (es mensual)
+     - Uso: Obligación patronal mensual
+  
+  3. DecimoTerceroAcumuladoStrategy
+     - Código: "DECIMO_TERCERO_ACUMULADO"
+     - Fórmula: TotalIngresosGravados / 12
+     - Acumulado: SÍ
+     - Periodo: Diciembre a Noviembre
+     - Transferencia: En NOVIEMBRE (mes 11)
+     - Uso: Cuando Is_DecimoTercMensual = false
+  
+  4. DecimoCuartoAcumuladoStrategy
+     - Código: "DECIMO_CUARTO_ACUMULADO"
+     - Fórmula: 470 / 12 = 39.17
+     - Acumulado: SÍ
+     - Periodo: Agosto a Julio
+     - Transferencia: En JULIO (mes 7)
+     - Uso: Cuando Is_DecimoCuartoMensual = false
+  
+  5. FondoReservaAcumuladoStrategy
+     - Código: "FONDOS_RESERVA_ACUMULADO"
+     - Fórmula: TotalIngresosGravados * 0.0833 (8.33%)
+     - Acumulado: SÍ
+     - Condición: Empleado > 1 año Y Is_FondoReserva = false
+     - Uso: Fondo de reserva acumulado hasta pago
+
+□ MAPEAMIENTO DE PARÁMETROS → ESTRATEGIAS:
+
+  El frontend debe conocer estos códigos para:
+  - Crear novedades correctamente
+  - Validar tipos de parámetros
+  - Mostrar ayudas contextuales
+  
+  INGRESOS:
+  - "HORAS_EXTRAS_50" → HorasExtras50Strategy
+  - "HORAS_EXTRAS_100" → HorasExtras100Strategy
+  - "SIMPLE" → SimpleStrategy (variables, comisiones, bonos)
+  - "DECIMO_TERCERO" → DecimoTerceroStrategy
+  - "DECIMO_CUARTO" → DecimoCuartoStrategy
+  - "FONDOS_RESERVA" → FondosReservaStrategy
+  
+  EGRESOS:
+  - "IESS_PERSONAL" → IessPersonalStrategy
+  - "IESS_EXTENSION" → IessExtensionStrategy
+  - "IMPUESTO_RENTA" → ImpuestoStrategy
+  - "EGRESO" → SimpleEgresoStrategy (todos los demás descuentos)
+  
+  PROVISIONES:
+  - "PROVISION_VACACIONES" → ProvisionVacacionesStrategy
+  - "IESS_PATRONAL" → IessPatronalStrategy
+  - "DECIMO_TERCERO_ACUMULADO" → DecimoTerceroAcumuladoStrategy
+  - "DECIMO_CUARTO_ACUMULADO" → DecimoCuartoAcumuladoStrategy
+  - "FONDOS_RESERVA_ACUMULADO" → FondoReservaAcumuladoStrategy
+
+□ NOTAS PARA EL FRONTEND - MÓDULO DE PARÁMETROS:
+
+  Al crear/editar parámetros, el frontend debe:
+  
+  1. Validar TipoCalculo según TipoParametro:
+     - Si TipoParametro = "INGRESO" → TipoCalculo debe ser válido para ingresos
+     - Si TipoParametro = "EGRESO" → TipoCalculo debe ser válido para egresos
+     - Si TipoParametro = "PROVISION" → TipoCalculo debe ser válido para provisiones
+  
+  2. Mostrar campos según estrategia:
+     - HorasExtras* → Requiere número de horas en novedad
+     - SimpleStrategy → Requiere monto fijo en novedad
+     - IESS/IR → Cálculo automático (no requiere input adicional)
+  
+  3. Ayudas contextuales:
+     - Mostrar fórmula de cálculo
+     - Indicar si es gravable o no
+     - Mostrar ejemplos de cálculo
+
+□ NOTAS PARA EL FRONTEND - MÓDULO DE NOVEDADES:
+
+  Al crear novedades, el frontend debe:
+  
+  1. Filtrar parámetros por TipoNovedad:
+     - TipoNovedad = "INGRESO" → Mostrar solo parámetros de tipo INGRESO
+     - TipoNovedad = "EGRESO" → Mostrar solo parámetros de tipo EGRESO
+     - TipoNovedad = "PROVISION" → Generalmente no se crean manualmente
+  
+  2. Campos dinámicos según parámetro seleccionado:
+     - Si parámetro es "HORAS_EXTRAS_50" o "HORAS_EXTRAS_100":
+       * Mostrar campo "Número de Horas" (numérico)
+       * MontoAplicado = número de horas ingresado
+     
+     - Si parámetro es "SIMPLE" (variables, bonos, etc.):
+       * Mostrar campo "Monto" (decimal)
+       * MontoAplicado = monto ingresado
+     
+     - Si parámetro es "EGRESO" (descuentos):
+       * Mostrar campo "Monto a Descontar" (decimal)
+       * MontoAplicado = monto a descontar
+  
+  3. Preview del cálculo:
+     - Mostrar preview del valor calculado antes de guardar
+     - Ejemplo: "Horas Extras 100%: 10 horas × $5.83 = $58.30"
+
+7.6 Store de Nóminas (stores/nominaStore.ts)
+---------------------------------------------
+□ Estados:
+  - nominas (lista)
+  - selectedNomina (nómina actual)
+  - loading
+  - error
+  - generationProgress (para nómina masiva)
+  - periodo (periodo seleccionado)
+
+□ Acciones:
+  - fetchNominasByEmpleado(empleadoId)
+  - fetchNominaByPeriodo(empleadoId, periodo)
+  - fetchNominasByPeriodoGlobal(periodo)
+  - generarNomina(empleadoId, periodo)
+  - generarNominaMasiva(periodo)
+  - deleteNomina(empleadoId, periodo)
+  - exportarPDF(empleadoId, periodo)
+  - exportarExcel(empleadoId, periodo)
+
+□ Getters:
+  - nominasPorPeriodo (filtradas)
+  - totalNominas (cantidad)
+  - totalAPagar (suma de netos)
+
+7.7 Facade de Nóminas (api/facades/nominaFacade.ts)
+--------------------------------------------------------
+□ Implementar todos los endpoints del NominaController:
+  - getNominasByEmpleado(empleadoId): Promise<Nomina[]>
+  - getNominaByPeriodo(empleadoId, periodo): Promise<Nomina | null>
+  - getNominasByPeriodoGlobal(periodo): Promise<Nomina[]>
+  - generarNomina(empleadoId, periodo): Promise<Nomina>
+  - generarNominaMasiva(periodo): Promise<GenerarMasivaResponse>
+  - deleteNomina(empleadoId, periodo): Promise<void>
+  - exportarPDF(empleadoId, periodo): Promise<Blob>
+  - exportarExcel(empleadoId, periodo): Promise<Blob>
+
+7.8 Ejemplos Prácticos de Cálculo de Nómina
+--------------------------------------------
+📌 Basados en datos reales del sistema (Example.txt)
+
+□ EJEMPLO 1: EMPLEADO CON DÉCIMOS MENSUALIZADOS
+
+  DATOS DEL EMPLEADO:
+  - Nombre: LAVERDE VIQUE SOFIA CAROLINA
+  - Fecha Ingreso: 2015-03-10 (10+ años)
+  - Salario Base: $700.00
+  - Is_DecimoTercMensual: true
+  - Is_DecimoCuartoMensual: true
+  - Is_FondoReserva: false (no mensualizado)
+  
+  NOVEDADES DEL MES:
+  - Horas Extras 50%: 5 horas
+  - Horas Extras 100%: 6 horas
+  - Variables: $91.10
+  
+  CÁLCULO PASO A PASO:
+  
+  1️⃣ INGRESOS GRAVABLES:
+     Salario Base:           $700.00
+     Horas Extras 50%:        $21.88  (((700/30/8) * 1.5) * 5)
+     Horas Extras 100%:       $35.00  (((700/30/8) * 2.0) * 6)
+     Variables:               $91.10
+     ─────────────────────────────────
+     TOTAL GRAVADOS IESS:    $847.98
+  
+  2️⃣ INGRESOS NO GRAVABLES:
+     Décimo 13° Mensual:      $70.66  (847.98 / 12)
+     Décimo 14° Mensual:      $39.17  (470 / 12)
+     Transporte:               $0.00
+     ─────────────────────────────────
+     TOTAL NO GRAVADOS:      $109.83
+  
+     TOTAL INGRESOS:         $957.81
+  
+  3️⃣ EGRESOS:
+     IESS Personal (9.45%):   $80.13  (847.98 * 0.0945)
+     Comisariato:             $25.50
+     Falta Injustificada:     $19.30
+     Anticipos:              $280.00
+     ─────────────────────────────────
+     TOTAL EGRESOS:          $404.93
+  
+  4️⃣ PROVISIONES MENSUALES:
+     Provisión Vacaciones:    $35.33  (847.98 / 24)
+     IESS Patronal (12.15%): $103.03  (847.98 * 0.1215)
+     Fondos Reserva Acum.:    $70.64  (847.98 * 0.0833)
+     Décimo 13° Acum.:         $0.00  (mensualizado)
+     Décimo 14° Acum.:         $0.00  (mensualizado)
+     ─────────────────────────────────
+     TOTAL PROVISIONES:      $209.00
+  
+  5️⃣ RESULTADO FINAL:
+     ┌─────────────────────────────────┐
+     │ TOTAL INGRESOS:     $957.81    │
+     │ TOTAL EGRESOS:     -$404.93    │
+     │ ─────────────────────────────  │
+     │ NETO A PAGAR:       $552.88    │
+     └─────────────────────────────────┘
+
+□ EJEMPLO 2: EMPLEADO CON DÉCIMOS ACUMULADOS
+
+  DATOS DEL EMPLEADO:
+  - Nombre: RODRIGUEZ ORELLANA CATALINA FERNANDA
+  - Fecha Ingreso: 2021-01-01 (4 años)
+  - Salario Base: $975.00
+  - Is_DecimoTercMensual: false (acumulado)
+  - Is_DecimoCuartoMensual: false (acumulado)
+  - Is_FondoReserva: true (mensualizado porque > 1 año)
+  
+  NOVEDADES DEL MES:
+  - Horas Extras 50%: 2 horas
+  - Horas Extras 100%: 10 horas
+  
+  CÁLCULO PASO A PASO:
+  
+  1️⃣ INGRESOS GRAVABLES:
+     Salario Base:           $975.00
+     Horas Extras 50%:        $12.19  (((975/30/8) * 1.5) * 2)
+     Horas Extras 100%:       $81.25  (((975/30/8) * 2.0) * 10)
+     ─────────────────────────────────
+     TOTAL GRAVADOS IESS:   $1,068.44
+  
+  2️⃣ INGRESOS NO GRAVABLES:
+     Fondos Reserva Mens.:    $89.00  (1068.44 * 0.0833)
+     ─────────────────────────────────
+     TOTAL NO GRAVADOS:       $89.00
+  
+     TOTAL INGRESOS:       $1,157.44
+  
+  3️⃣ EGRESOS:
+     IESS Personal (9.45%):  $100.97  (1068.44 * 0.0945)
+     Comisariato:             $34.04
+     Anticipos:               $74.98
+     ─────────────────────────────────
+     TOTAL EGRESOS:          $209.99
+  
+  4️⃣ PROVISIONES MENSUALES:
+     Provisión Vacaciones:    $44.52  (1068.44 / 24)
+     IESS Patronal (12.15%): $129.82  (1068.44 * 0.1215)
+     Décimo 13° Acum.:        $89.04  (1068.44 / 12) → Se acumula
+     Décimo 14° Acum.:        $39.17  (470 / 12) → Se acumula
+     ─────────────────────────────────
+     TOTAL PROVISIONES:      $302.55
+  
+  5️⃣ RESULTADO FINAL:
+     ┌─────────────────────────────────┐
+     │ TOTAL INGRESOS:   $1,157.44    │
+     │ TOTAL EGRESOS:     -$209.99    │
+     │ ─────────────────────────────  │
+     │ NETO A PAGAR:       $947.45    │
+     └─────────────────────────────────┘
+  
+  📝 NOTA: En este caso, los décimos se acumulan mes a mes:
+     - Décimo 13° se transferirá al rol en NOVIEMBRE
+     - Décimo 14° se transferirá al rol en JULIO
+
+□ EJEMPLO 3: TRANSFERENCIA DE PROVISIONES ACUMULADAS
+
+  ESCENARIO: Mes de NOVIEMBRE (mes 11)
+  Empleado con décimo tercero ACUMULADO
+  
+  PROVISIÓN ACUMULADA (Ene-Nov):
+  - Enero:    $89.04
+  - Febrero:  $89.04
+  - Marzo:    $89.04
+  - Abril:    $89.04
+  - Mayo:     $89.04
+  - Junio:    $89.04
+  - Julio:    $89.04
+  - Agosto:   $89.04
+  - Sept.:    $89.04
+  - Octubre:  $89.04
+  - Noviembre: $89.04
+  ─────────────────────
+  TOTAL ACUMULADO: $979.44
+  
+  En el ROL de NOVIEMBRE:
+  - TOTAL INGRESOS GRAVADOS IESS: $1,068.44 (normal)
+  - TOTAL INGRESOS NO GRAVADOS: $89.00 + $979.44 = $1,068.44
+    * $89.00 → Fondos de Reserva mensual
+    * $979.44 → ✅ DÉCIMO TERCERO ACUMULADO TRANSFERIDO
+  
+  Después de transferir:
+  - Provisión marcada como IsTransferred = true
+  - Acumulado se reinicia en diciembre
+
+□ COMPONENTES DE UI SUGERIDOS PARA MOSTRAR CÁLCULOS:
+
+  1. NominaCalculatorPreview.vue
+     - Preview en tiempo real mientras se agregan novedades
+     - Muestra cómo afectará cada novedad al cálculo final
+  
+  2. NominaDetailBreakdown.vue
+     - Desglose completo de la nómina calculada
+     - Secciones colapsables para cada tipo de ingreso/egreso
+     - Tooltips con explicación de cada fórmula
+  
+  3. ProvisionesTimeline.vue
+     - Línea de tiempo mostrando acumulación de provisiones
+     - Indicador visual de cuándo se transfieren
+     - Gráfico de acumulado mes a mes
+  
+  4. ComparadorNominas.vue
+     - Comparar nómina actual vs anterior
+     - Resaltar diferencias
+     - Explicar por qué cambió cada valor
+
+□ VALIDACIONES Y ALERTAS EN EL FRONTEND:
+
+  ⚠️ ANTES DE GENERAR NÓMINA:
+  - "El periodo {periodo} no está abierto. No se puede generar nómina."
+  - "Ya existe una nómina para este empleado en el periodo {periodo}."
+  - "El empleado tiene menos de 1 año. No aplica Fondo de Reserva."
+  - "No hay novedades registradas para este periodo. ¿Desea continuar?"
+  
+  ℹ️ INFORMACIÓN CONTEXTUAL:
+  - "Los décimos están mensualizados. Se pagan cada mes."
+  - "Los décimos se acumulan. El 13° se pagará en noviembre."
+  - "Este mes se transferirá el décimo tercero acumulado: ${monto}"
+  - "Provisión de vacaciones acumulada: ${monto}. Disponible: {días} días."
+  
+  ✅ DESPUÉS DE GENERAR:
+  - "Nómina generada exitosamente para {empleado} - {periodo}"
+  - "Neto a pagar: ${netoAPagar}"
+  - "Provisiones generadas: ${totalProvisiones}"
+
+================================================================================
+FASE 8: MÓDULO DE NOVEDADES
+================================================================================
+
+8.1 Vistas de Novedades
+------------------------
+□ NovedadesList.vue
+  - Lista de novedades
+  - Filtros por empleado, tipo, período
+
+□ NovedadForm.vue
+  - Formulario para registrar novedades
+  - Tipos: Horas extras, bonos, descuentos, etc.
+  - Validaciones según tipo
+
+8.2 Reglas de Negocio y Variables del Backend
+----------------------------------------------
+📌 IMPORTANTE: Al llamar a las APIs de Novedad, considerar:
+
+□ VARIABLES AUTOMÁTICAS (generadas por el backend):
+  ✓ ID_Novedad         - GUID generado automáticamente en CREATE
+  ✓ PK                 - Construido como "EMP#{ID_Empleado}"
+  ✓ SK                 - Construido como "NOV#{Periodo}#{ID_Novedad}"
+
+□ VARIABLES REQUERIDAS (el usuario DEBE proporcionar):
+  ⚠ ID_Empleado        - Referencia al empleado (va en el PK)
+  ⚠ ID_Parametro       - Referencia al parámetro que define el tipo de novedad
+  ⚠ Periodo            - Formato "YYYY-MM" (ej: "2025-11")
+  ⚠ TipoNovedad        - Tipo: "INGRESO", "EGRESO", o "PROVISION"
+  ⚠ MontoAplicado      - Decimal, valor de la novedad
+  ⚠ FechaIngresada     - Fecha en que se registra la novedad
+
+□ VARIABLES OPCIONALES:
+  ○ Descripcion        - Descripción adicional (string)
+  ○ Is_Gravable        - Boolean (por defecto true)
+
+□ VALIDACIONES DEL BACKEND:
+  ✓ Empleado debe existir
+  ✓ Parámetro debe existir y coincidir con TipoNovedad
+  ✓ MontoAplicado debe ser > 0
+  ✓ TipoNovedad debe ser válido (INGRESO/EGRESO/PROVISION)
+  ✓ Periodo debe tener formato YYYY-MM
+
+□ NOTAS PARA EL FRONTEND:
+  ⚠ No enviar ID_Novedad, PK, SK en CREATE
+  ⚠ Validar que el parámetro seleccionado coincida con el tipo de novedad
+  ⚠ Mostrar parámetros filtrados por TipoNovedad
+  ⚠ MontoAplicado debe ser numérico positivo
+
+8.3 Store y Facade
+------------------
+□ novedadStore.ts
+□ api/facades/novedadFacade.ts
+
+================================================================================
+FASE 9: MÓDULO DE BANKING
+================================================================================
+
+9.1 Vistas de Banking
+----------------------
+□ BankingList.vue (dentro de PersonaDetail)
+  - Lista de cuentas bancarias de una persona
+  - Acciones CRUD
+
+□ BankingForm.vue
+  - Formulario para crear/editar cuenta bancaria
+
+9.2 Reglas de Negocio y Variables del Backend
+----------------------------------------------
+📌 IMPORTANTE: Al llamar a las APIs de Banking, considerar:
+
+□ VARIABLES AUTOMÁTICAS (generadas por el backend):
+  ✓ ID_Banking         - GUID generado automáticamente en CREATE
+  ✓ PK                 - Construido como "PERSONA#{ID_Persona}"
+  ✓ SK                 - Construido como "BANK#{ID_Banking}"
+  ✓ DateCreated        - DateTime de creación
+
+□ VARIABLES REQUERIDAS (el usuario DEBE proporcionar):
+  ⚠ ID_Persona         - Referencia a la persona (va en PK)
+  ⚠ BankName           - Nombre del banco
+  ⚠ AccountNumber      - Número de cuenta
+  ⚠ AccountType        - Tipo de cuenta (Ahorros, Corriente)
+  ⚠ Pais               - País del banco
+
+□ VARIABLES OPCIONALES:
+  ○ SWIFTCode          - Código SWIFT (para transferencias internacionales)
+  ○ Sucursal           - Sucursal del banco
+
+□ NOTAS PARA EL FRONTEND:
+  ⚠ Una persona puede tener múltiples cuentas bancarias
+  ⚠ No enviar ID_Banking, PK, SK, DateCreated en CREATE
+  ⚠ Validar formato de número de cuenta según país
+  ⚠ IMPORTANTE: Banking se relaciona con PERSONA, no con EMPLEADO
+
+9.3 Store y Facade
+------------------
+□ bankingStore.ts
+□ api/facades/bankingFacade.ts
+
+================================================================================
+FASE 10: MÓDULO DE PROVISIONES
+================================================================================
+
+10.1 Vistas de Provisiones
+---------------------------
+□ ProvisionesList.vue
+  - Lista de provisiones acumuladas
+  - Filtros y agrupaciones
+
+□ ProvisionDetail.vue
+  - Detalle de provisiones por empleado
+
+10.2 Reglas de Negocio y Variables del Backend
+-----------------------------------------------
+📌 IMPORTANTE: Las provisiones se generan AUTOMÁTICAMENTE durante el cálculo de nómina
+
+□ VARIABLES AUTOMÁTICAS (generadas por el backend):
+  ✓ ID_Provision       - GUID generado automáticamente
+  ✓ PK                 - Construido como "EMP#{ID_Empleado}"
+  ✓ SK                 - Construido como "PROV#{Periodo}#{TipoProvision}"
+  ✓ Todos los montos calculados según estrategias
+
+□ TIPOS DE PROVISIONES:
+  - DECIMO_TERCERO     - 13º sueldo (si no es mensualizado)
+  - DECIMO_CUARTO      - 14º sueldo (si no es mensualizado)
+  - FONDO_RESERVA      - Fondos de reserva (si no es mensualizado)
+  - VACACIONES         - Provisión de vacaciones
+
+□ NOTAS PARA EL FRONTEND:
+  ⚠ Las provisiones NO se crean manualmente por el usuario
+  ⚠ Solo se visualizan y consultan
+  ⚠ Se generan automáticamente al procesar la nómina
+  ⚠ Útil para reportes de pasivos laborales
+
+10.3 Store y Facade
+-------------------
+□ provisionStore.ts (solo para consultas)
+□ api/facades/provisionFacade.ts
+
+================================================================================
+FASE 11: MÓDULO DE PARÁMETROS (CONFIGURACIÓN DEL SISTEMA)
+================================================================================
+
+11.1 Concepto y Propósito
+--------------------------
+📌 IMPORTANTE: Los Parámetros son la CONFIGURACIÓN del sistema de nóminas.
+
+□ ¿QUÉ ES UN PARÁMETRO?
+  - Define un tipo de ingreso, egreso o provisión
+  - Especifica cómo se calcula (estrategia de cálculo)
+  - Se usa como plantilla para crear novedades
+  - Ejemplos:
+    * HORAS_EXTRAS_100 → Horas extras al 100%
+    * IESS_PERSONAL → IESS personal (9.45%)
+    * COMISARIATO → Descuento de comisariato
+    * PRESTAMO_EMPLEADO → Descuento por préstamo
+
+□ RELACIÓN CON OTROS MÓDULOS:
+  - Parámetros → Definen QUÉ se puede calcular
+  - Novedades → Usan parámetros para registrar valores específicos
+  - Estrategias → Determinan CÓMO se calcula cada parámetro
+
+11.2 Vistas de Parámetros
+--------------------------
+□ ParametrosList.vue
+  - Lista de todos los parámetros del sistema
+  - Agrupados por TIPO:
+    * INGRESO (verde 🟢)
+    * EGRESO (rojo 🔴)
+    * PROVISION (azul 🔵)
+  - Filtros:
+    * Por tipo
+    * Por tipo de cálculo
+  - Búsqueda por nombre
+  - Acciones CRUD (solo admin)
+
+□ ParametroForm.vue
+  - Formulario para crear/editar parámetros
+  - Campos:
+    * Nombre (texto, obligatorio)
+    * Tipo (select: INGRESO/EGRESO/PROVISION)
+    * TipoCalculo (select dinámico según Tipo)
+    * Descripción (textarea, opcional)
+  - Validaciones:
+    * Nombre único
+    * TipoCalculo compatible con Tipo
+
+□ ParametroDetail.vue
+  - Información completa del parámetro
+  - Fórmula de cálculo (explicación)
+  - Estrategia asociada
+  - Ejemplos de cálculo
+  - Novedades que usan este parámetro (lista)
+
+11.3 Reglas de Negocio y Variables del Backend
+-----------------------------------------------
+📌 IMPORTANTE: Al llamar a las APIs de Parámetro, considerar:
+
+□ VARIABLES AUTOMÁTICAS (generadas por el backend):
+  ✓ ID_Parametro       - GUID generado automáticamente
+  ✓ PK                 - Siempre "PARAM#GLOBAL"
+  ✓ SK                 - Construido como "PARAM#{ID_Parametro}"
+  ✓ DateCreated        - Fecha de creación (ISO)
+
+□ VARIABLES REQUERIDAS (el usuario DEBE proporcionar):
+  ⚠ Nombre             - Nombre del parámetro (ej: "HORAS_EXTRAS_100")
+  ⚠ Tipo               - Tipo: "INGRESO", "EGRESO", o "PROVISION"
+  ⚠ TipoCalculo        - Código de estrategia (ej: "HORAS_EXTRAS_100")
+
+□ VARIABLES OPCIONALES:
+  ○ Descripcion        - Descripción para administradores
+
+□ TIPOS DE PARÁMETRO:
+  - INGRESO    → Para ingresos (salarios, bonos, horas extras)
+  - EGRESO     → Para descuentos (IESS, préstamos, faltas)
+  - PROVISION  → Para provisiones (vacaciones, fondos)
+
+□ TIPOS DE CÁLCULO (TipoCalculo) - CATÁLOGO COMPLETO:
+
+  📌 PARA INGRESOS (Tipo = "INGRESO"):
+  ┌────────────────────────┬──────────────────────────────────┐
+  │ TipoCalculo            │ Descripción                      │
+  ├────────────────────────┼──────────────────────────────────┤
+  │ HORAS_EXTRAS_50        │ Horas extras al 50%              │
+  │ HORAS_EXTRAS_100       │ Horas extras al 100%             │
+  │ SIMPLE                 │ Valor fijo (variables, bonos)    │
+  │ DECIMO_TERCERO         │ Décimo tercero mensualizado      │
+  │ DECIMO_CUARTO          │ Décimo cuarto mensualizado       │
+  │ FONDOS_RESERVA         │ Fondos de reserva mensualizado   │
+  └────────────────────────┴──────────────────────────────────┘
+  
+  📌 PARA EGRESOS (Tipo = "EGRESO"):
+  ┌────────────────────────┬──────────────────────────────────┐
+  │ TipoCalculo            │ Descripción                      │
+  ├────────────────────────┼──────────────────────────────────┤
+  │ IESS_PERSONAL          │ IESS personal (9.45%)            │
+  │ IESS_EXTENSION         │ IESS extensión cónyuge (3.41%)   │
+  │ IMPUESTO_RENTA         │ Impuesto a la renta              │
+  │ EGRESO                 │ Descuento simple (valor fijo)    │
+  └────────────────────────┴──────────────────────────────────┘
+  
+  📌 PARA PROVISIONES (Tipo = "PROVISION"):
+  ┌──────────────────────────────┬────────────────────────────┐
+  │ TipoCalculo                  │ Descripción                │
+  ├──────────────────────────────┼────────────────────────────┤
+  │ PROVISION_VACACIONES         │ Provisión vacaciones       │
+  │ IESS_PATRONAL                │ IESS patronal (12.15%)     │
+  │ DECIMO_TERCERO_ACUMULADO     │ Décimo 13° acumulado       │
+  │ DECIMO_CUARTO_ACUMULADO      │ Décimo 14° acumulado       │
+  │ FONDOS_RESERVA_ACUMULADO     │ Fondos reserva acumulado   │
+  └──────────────────────────────┴────────────────────────────┘
+
+□ VALIDACIONES DEL BACKEND:
+  ✓ Nombre no puede estar vacío
+  ✓ Tipo debe ser válido (INGRESO/EGRESO/PROVISION)
+  ✓ TipoCalculo debe ser compatible con Tipo
+  ✓ TipoCalculo debe corresponder a una estrategia existente
+
+□ ENDPOINTS PRINCIPALES:
+
+  - LISTAR TODOS:
+    * GET /api/parametro
+    * Retorna todos los parámetros del sistema
+    
+  - OBTENER POR ID:
+    * GET /api/parametro/{id}
+    * Retorna parámetro específico
+    
+  - FILTRAR POR TIPO:
+    * GET /api/parametro/tipo/{tipo}
+    * Ejemplo: GET /api/parametro/tipo/INGRESO
+    * Retorna solo parámetros de tipo INGRESO
+    * Útil para filtrar al crear novedades
+    
+  - CREAR PARÁMETRO:
+    * POST /api/parametro
+    * Body: { Nombre, Tipo, TipoCalculo, Descripcion }
+    
+  - ACTUALIZAR PARÁMETRO:
+    * PUT /api/parametro/{id}
+    * Body: { Nombre, Tipo, TipoCalculo, Descripcion }
+    
+  - ELIMINAR PARÁMETRO:
+    * DELETE /api/parametro/{id}
+    * ⚠️ No permitir eliminar si hay novedades que lo usan
+
+□ PARÁMETROS PRE-CONFIGURADOS (SISTEMA):
+
+  El sistema viene con parámetros base que NO deben eliminarse:
+  
+  INGRESOS OBLIGATORIOS:
+  - SALARIO_BASE (aunque no está en tabla, es automático)
+  
+  EGRESOS OBLIGATORIOS:
+  - IESS_PERSONAL (TipoCalculo: "IESS_PERSONAL")
+  - IMPUESTO_RENTA (TipoCalculo: "IMPUESTO_RENTA")
+  
+  PROVISIONES OBLIGATORIAS:
+  - PROVISION_VACACIONES (TipoCalculo: "PROVISION_VACACIONES")
+  - IESS_PATRONAL (TipoCalculo: "IESS_PATRONAL")
+
+□ NOTAS CRÍTICAS PARA EL FRONTEND:
+
+  ⚠️ VALIDACIÓN DE TipoCalculo:
+  - Al seleccionar Tipo = "INGRESO", solo mostrar TipoCalculo válidos para ingresos
+  - Al seleccionar Tipo = "EGRESO", solo mostrar TipoCalculo válidos para egresos
+  - Al seleccionar Tipo = "PROVISION", solo mostrar TipoCalculo válidos para provisiones
+  
+  ⚠️ AL CREAR NOVEDADES:
+  - Filtrar parámetros por Tipo de novedad
+  - Si novedad es INGRESO → mostrar solo parámetros tipo INGRESO
+  - Si novedad es EGRESO → mostrar solo parámetros tipo EGRESO
+  
+  ⚠️ CAMPOS DINÁMICOS EN NOVEDADES:
+  - Si TipoCalculo = "HORAS_EXTRAS_50" o "HORAS_EXTRAS_100":
+    * Mostrar campo "Número de Horas" (numérico)
+  - Si TipoCalculo = "SIMPLE" o "EGRESO":
+    * Mostrar campo "Monto" (decimal)
+  - Si TipoCalculo automático (IESS_PERSONAL, etc.):
+    * No requiere input (se calcula automáticamente)
+  
+  ⚠️ AYUDA CONTEXTUAL:
+  - Mostrar fórmula de cálculo según TipoCalculo seleccionado
+  - Ejemplo:
+    * HORAS_EXTRAS_100: "((SalarioBase/30/8) * 2.0) * NumeroHoras"
+    * IESS_PERSONAL: "TotalIngresosGravados * 9.45%"
+
+11.4 Mapeamiento Completo: Parámetro → Estrategia → Uso
+--------------------------------------------------------
+□ TABLA DE REFERENCIA PARA DESARROLLADORES:
+
+INGRESOS:
+┌─────────────────────┬─────────────────────┬──────────────────┬────────────┐
+│ Nombre Sugerido     │ TipoCalculo         │ Estrategia       │ Input Req. │
+├─────────────────────┼─────────────────────┼──────────────────┼────────────┤
+│ HORAS_EXTRAS_50     │ HORAS_EXTRAS_50     │ HE50Strategy     │ # Horas    │
+│ HORAS_EXTRAS_100    │ HORAS_EXTRAS_100    │ HE100Strategy    │ # Horas    │
+│ VARIABLES           │ SIMPLE              │ SimpleStrategy   │ Monto      │
+│ COMISIONES          │ SIMPLE              │ SimpleStrategy   │ Monto      │
+│ BONOS               │ SIMPLE              │ SimpleStrategy   │ Monto      │
+│ DECIMO_13_MENSUAL   │ DECIMO_TERCERO      │ D13Strategy      │ Auto       │
+│ DECIMO_14_MENSUAL   │ DECIMO_CUARTO       │ D14Strategy      │ Auto       │
+│ FONDOS_RESERVA_MENS │ FONDOS_RESERVA      │ FRStrategy       │ Auto       │
+└─────────────────────┴─────────────────────┴──────────────────┴────────────┘
+
+EGRESOS:
+┌─────────────────────┬─────────────────────┬──────────────────┬────────────┐
+│ Nombre Sugerido     │ TipoCalculo         │ Estrategia       │ Input Req. │
+├─────────────────────┼─────────────────────┼──────────────────┼────────────┤
+│ IESS_PERSONAL       │ IESS_PERSONAL       │ IESSPersonal     │ Auto       │
+│ IESS_EXTENSION      │ IESS_EXTENSION      │ IESSExtension    │ Auto       │
+│ IMPUESTO_RENTA      │ IMPUESTO_RENTA      │ ImpuestoStrategy │ Auto       │
+│ COMISARIATO         │ EGRESO              │ SimpleEgreso     │ Monto      │
+│ ANTICIPOS           │ EGRESO              │ SimpleEgreso     │ Monto      │
+│ PRESTAMOS           │ EGRESO              │ SimpleEgreso     │ Monto      │
+│ FALTAS              │ EGRESO              │ SimpleEgreso     │ Monto      │
+│ PENSION_ALIMENT     │ EGRESO              │ SimpleEgreso     │ Monto      │
+└─────────────────────┴─────────────────────┴──────────────────┴────────────┘
+
+PROVISIONES (generadas automáticamente, no se crean como novedades):
+┌─────────────────────┬──────────────────────────┬──────────────────────┐
+│ Nombre              │ TipoCalculo              │ Estrategia           │
+├─────────────────────┼──────────────────────────┼──────────────────────┤
+│ PROVISION_VAC       │ PROVISION_VACACIONES     │ ProvisionVac         │
+│ IESS_PATRONAL       │ IESS_PATRONAL            │ IESSPatronal         │
+│ DECIMO_13_ACUM      │ DECIMO_TERCERO_ACUMULADO │ D13Acumulado         │
+│ DECIMO_14_ACUM      │ DECIMO_CUARTO_ACUMULADO  │ D14Acumulado         │
+│ FONDOS_RES_ACUM     │ FONDOS_RESERVA_ACUMULADO │ FRacumulado          │
+└─────────────────────┴──────────────────────────┴──────────────────────┘
+
+11.5 Store de Parámetros (stores/parametroStore.ts)
+----------------------------------------------------
+□ Estados:
+  - parametros (lista completa)
+  - selectedParametro (parámetro actual)
+  - loading
+  - error
+
+□ Acciones:
+  - fetchParametros()
+  - fetchParametroById(id)
+  - fetchParametrosByTipo(tipo)  // Muy útil para filtros
+  - createParametro(parametro)
+  - updateParametro(id, parametro)
+  - deleteParametro(id)
+
+□ Getters:
+  - parametrosIngresos (filtrados por Tipo = "INGRESO")
+  - parametrosEgresos (filtrados por Tipo = "EGRESO")
+  - parametrosProvisiones (filtrados por Tipo = "PROVISION")
+  - getParametroByNombre(nombre)
+
+11.6 Facade de Parámetros (api/facades/parametroFacade.ts)
+-----------------------------------------------------------
+□ Métodos a implementar:
+  - getParametros(): Promise<Parametro[]>
+    * GET /api/parametro
+    
+  - getParametroById(id: string): Promise<Parametro | null>
+    * GET /api/parametro/{id}
+    
+  - getParametrosByTipo(tipo: string): Promise<Parametro[]>
+    * GET /api/parametro/tipo/{tipo}
+    * tipo: "INGRESO" | "EGRESO" | "PROVISION"
+    
+  - createParametro(data: CreateParametroDTO): Promise<Parametro>
+    * POST /api/parametro
+    * Body: { Nombre, Tipo, TipoCalculo, Descripcion }
+    
+  - updateParametro(id: string, data: UpdateParametroDTO): Promise<Parametro>
+    * PUT /api/parametro/{id}
+    
+  - deleteParametro(id: string): Promise<void>
+    * DELETE /api/parametro/{id}
+
+□ DTOs a crear (types/parametro.types.ts):
+  - Parametro (modelo completo)
+  - CreateParametroDTO (sin campos auto)
+  - UpdateParametroDTO (sin campos auto)
+  - TipoParametro (enum: "INGRESO" | "EGRESO" | "PROVISION")
+  - TipoCalculoIngreso (enum con todos los tipos de cálculo para ingresos)
+  - TipoCalculoEgreso (enum con todos los tipos de cálculo para egresos)
+  - TipoCalculoProvision (enum con todos los tipos de cálculo para provisiones)
+
+11.7 Componentes Específicos Sugeridos
+---------------------------------------
+□ ParametroSelector.vue
+  - Componente reutilizable para seleccionar parámetro
+  - Props: tipo (para filtrar)
+  - Usado en formulario de novedades
+  
+□ ParametroCard.vue
+  - Card para mostrar parámetro en lista
+  - Muestra tipo, nombre, estrategia
+  - Acciones rápidas (editar, eliminar)
+
+□ TipoCalculoHelper.vue
+  - Componente que muestra info de la estrategia
+  - Fórmula de cálculo
+  - Ejemplo con valores
+  - Campos requeridos
+
+11.8 Validaciones y Alertas Específicas
+----------------------------------------
+□ CREAR/EDITAR PARÁMETRO:
+  ✅ "Parámetro creado exitosamente"
+  ❌ "El nombre del parámetro ya existe"
+  ❌ "TipoCalculo '{tipo}' no es válido para Tipo '{tipo}'"
+  ⚠️ "Este parámetro no puede eliminarse (usado en novedades)"
+
+□ USAR EN NOVEDADES:
+  ℹ️ "Este parámetro requiere {campo}"
+  ℹ️ "Fórmula: {formula}"
+  ℹ️ "Este valor se calcula automáticamente"
+
+11.9 Casos de Uso Especiales
+-----------------------------
+□ CONFIGURACIÓN INICIAL DEL SISTEMA:
+  - Crear parámetros base obligatorios
+  - Script de inicialización con parámetros pre-configurados
+  - Documentación de parámetros estándar
+
+□ PERSONALIZACIÓN POR EMPRESA:
+  - Permitir agregar parámetros custom con TipoCalculo = "SIMPLE" o "EGRESO"
+  - Ejemplos: bonos específicos, descuentos personalizados
+
+□ MANTENIMIENTO:
+  - No permitir eliminar parámetros usados en novedades existentes
+  - Permitir editar descripción sin afectar cálculos
+  - Advertir si se cambia TipoCalculo (puede afectar cálculos futuros)
+
+================================================================================
+FASE 12: MÓDULO DE WORKSPACES (GESTIÓN DE PERIODOS)
+================================================================================
+
+12.1 Concepto y Propósito
+--------------------------
+📌 IMPORTANTE: Los Workspaces controlan los PERIODOS de nómina del sistema.
+
+□ ¿QUÉ ES UN WORKSPACE?
+  - Es un periodo de nómina (ejemplo: "2025-11", "2025-12")
+  - Controla si el periodo está ABIERTO o CERRADO
+  - Un periodo ABIERTO permite generar/modificar nóminas
+  - Un periodo CERRADO impide cualquier cambio (período finalizado)
+
+□ FLUJO DE TRABAJO:
+  1. Al inicio del mes, se CREA un nuevo workspace (periodo abierto)
+  2. Durante el mes, se generan nóminas para ese periodo
+  3. Al finalizar el mes, se CIERRA el workspace
+  4. Una vez cerrado, NO se pueden generar ni modificar nóminas
+  5. Esto asegura la integridad de la información histórica
+
+12.2 Vistas de Workspaces
+--------------------------
+□ WorkspacesList.vue
+  - Lista de todos los periodos (meses)
+  - Mostrar estado: ABIERTO (verde) o CERRADO (rojo)
+  - Filtros: Por año, por estado
+  - Vista de calendario mensual (opcional)
+  - Acciones:
+    * Crear nuevo periodo
+    * Cerrar periodo actual
+    * Ver detalles del periodo
+
+□ WorkspaceDetail.vue
+  - Información del periodo:
+    * Periodo (YYYY-MM)
+    * Estado (Abierto/Cerrado)
+    * Fecha de creación
+    * Fecha de cierre (si aplica)
+  - Estadísticas del periodo:
+    * Total de nóminas generadas
+    * Total de empleados procesados
+    * Monto total de nómina
+    * Provisiones generadas
+  - Lista de nóminas del periodo
+  - Acción: Cerrar periodo (si está abierto)
+
+□ CrearPeriodoModal.vue
+  - Formulario simple:
+    * Selección de mes y año
+    * Validación: No crear periodo duplicado
+    * Confirmación antes de crear
+
+12.3 Reglas de Negocio y Variables del Backend
+-----------------------------------------------
+📌 IMPORTANTE: Al llamar a las APIs de Workspace, considerar:
+
+□ VARIABLES AUTOMÁTICAS (generadas por el backend):
+  ✓ ID_Workspace       - GUID generado automáticamente
+  ✓ PK                 - Siempre "WORKSPACE#GLOBAL"
+  ✓ SK                 - Construido como "WORK#{Periodo}"
+  ✓ FechaCreacion      - DateTime de cuando se crea el periodo
+  ✓ Estado             - Inicialmente 0 (Abierto)
+
+□ VARIABLES REQUERIDAS (el usuario DEBE proporcionar):
+  ⚠ Periodo            - Formato "YYYY-MM" (ej: "2025-11")
+
+□ ESTADOS DEL WORKSPACE:
+  - 0 = ABIERTO   (se pueden generar nóminas)
+  - 1 = CERRADO   (periodo finalizado, no se puede modificar)
+
+□ VALIDACIONES DEL BACKEND:
+  ✓ Periodo debe tener formato válido YYYY-MM
+  ✓ No se puede crear periodo duplicado
+  ✓ No se puede cerrar un periodo que no existe
+  ✓ Al cerrar periodo: se valida que todas las nóminas estén completas
+  ✓ Una vez cerrado, NO se puede reabrir
+
+□ ENDPOINTS PRINCIPALES:
+
+  - LISTAR TODOS LOS PERIODOS:
+    * GET /api/workspace
+    * Retorna todos los workspaces (periodos)
+    
+  - OBTENER PERIODO ESPECÍFICO:
+    * GET /api/workspace/{periodo}
+    * Ejemplo: GET /api/workspace/2025-11
+    * Retorna info del periodo o 404 si no existe
+    
+  - CREAR NUEVO PERIODO:
+    * POST /api/workspace/{periodo}
+    * Ejemplo: POST /api/workspace/2025-12
+    * NO requiere body (solo el periodo en la URL)
+    * Backend crea automáticamente con Estado = 0 (Abierto)
+    
+  - CERRAR PERIODO:
+    * POST /api/workspace/{periodo}/cerrar
+    * Ejemplo: POST /api/workspace/2025-11/cerrar
+    * Cambia Estado a 1 (Cerrado)
+    * Registra FechaCierre
+    * Acción IRREVERSIBLE
+
+□ COMPORTAMIENTO DE CREATE (POST /api/workspace/{periodo}):
+  1. Usuario envía solo el periodo en la URL
+  2. Backend valida formato YYYY-MM
+  3. Backend verifica que no exista periodo duplicado
+  4. Backend genera: ID_Workspace, PK, SK, FechaCreacion
+  5. Backend establece Estado = 0 (Abierto)
+  6. Backend retorna workspace creado
+
+□ COMPORTAMIENTO DE CERRAR (POST /api/workspace/{periodo}/cerrar):
+  1. Backend verifica que el periodo exista
+  2. Backend verifica que esté en Estado = 0 (Abierto)
+  3. Backend cambia Estado a 1 (Cerrado)
+  4. Backend registra FechaCierre con fecha actual
+  5. Backend retorna workspace actualizado
+  6. ⚠️ IMPORTANTE: Esta acción NO se puede deshacer
+
+□ REGLAS CRÍTICAS PARA EL FRONTEND:
+
+  ⚠️ ANTES DE GENERAR NÓMINA:
+  - Verificar que el periodo esté ABIERTO (Estado = 0)
+  - Mostrar error si periodo está cerrado
+  - No permitir crear novedades en periodo cerrado
+  
+  ⚠️ ANTES DE CERRAR PERIODO:
+  - Mostrar confirmación: "¿Está seguro? Esta acción NO se puede deshacer"
+  - Listar nóminas pendientes (si hay empleados sin nómina)
+  - Mostrar resumen del periodo antes de cerrar
+  - Validar que el usuario tenga permisos
+  
+  ⚠️ VISUALIZACIÓN:
+  - Periodo ABIERTO: Badge verde con "ABIERTO"
+  - Periodo CERRADO: Badge rojo con "CERRADO" + fecha de cierre
+  - Deshabilitar botón "Cerrar" si ya está cerrado
+  - Deshabilitar botón "Generar Nómina" si periodo cerrado
+
+□ FLUJO DE USUARIO SUGERIDO:
+
+  INICIO DE MES:
+  1. Usuario accede a "Gestión de Periodos"
+  2. Click en "Crear Nuevo Periodo"
+  3. Selecciona mes y año (ej: Diciembre 2025)
+  4. Sistema valida y crea periodo con Estado ABIERTO
+  5. Usuario puede generar nóminas para ese periodo
+  
+  DURANTE EL MES:
+  1. Usuario genera nóminas
+  2. Registra novedades
+  3. Modifica/recalcula nóminas si es necesario
+  
+  FIN DE MES:
+  1. Usuario revisa que todas las nóminas estén completas
+  2. Click en "Cerrar Periodo"
+  3. Sistema muestra resumen y confirmación
+  4. Usuario confirma
+  5. Sistema cierra periodo (Estado = 1)
+  6. Ya no se puede modificar nada de ese periodo
+
+12.4 Store de Workspaces (stores/workspaceStore.ts)
+----------------------------------------------------
+□ Estados:
+  - workspaces (lista de periodos)
+  - currentWorkspace (periodo activo)
+  - loading
+  - error
+  - periodoActual (periodo seleccionado)
+
+□ Acciones:
+  - fetchWorkspaces()
+  - fetchWorkspaceByPeriodo(periodo)
+  - crearPeriodo(periodo)
+  - cerrarPeriodo(periodo)
+  - getPeriodoActivo() - obtiene el periodo abierto más reciente
+
+□ Getters:
+  - periodosAbiertos (filtrados por Estado = 0)
+  - periodosCerrados (filtrados por Estado = 1)
+  - isPeriodoAbierto(periodo) - verifica si un periodo está abierto
+  - ultimoPeriodo - obtiene el periodo más reciente
+
+12.5 Facade de Workspaces (api/facades/workspaceFacade.ts)
+-----------------------------------------------------------
+□ Métodos a implementar:
+  - getWorkspaces(): Promise<WorkspaceNomina[]>
+    * GET /api/workspace
+    * Retorna lista de todos los periodos
+    
+  - getWorkspaceByPeriodo(periodo: string): Promise<WorkspaceNomina | null>
+    * GET /api/workspace/{periodo}
+    * Retorna workspace o null
+    
+  - crearPeriodo(periodo: string): Promise<WorkspaceNomina>
+    * POST /api/workspace/{periodo}
+    * Crea nuevo periodo abierto
+    
+  - cerrarPeriodo(periodo: string): Promise<WorkspaceNomina>
+    * POST /api/workspace/{periodo}/cerrar
+    * Cierra el periodo (irreversible)
+
+□ DTOs a crear (types/workspace.types.ts):
+  - WorkspaceNomina (modelo completo del backend)
+  - EstadoWorkspace (enum: Abierto = 0, Cerrado = 1)
+  - CrearPeriodoRequest (solo periodo)
+
+12.6 Componentes Específicos Sugeridos
+---------------------------------------
+□ PeriodoSelector.vue
+  - Componente reutilizable para seleccionar periodo
+  - Muestra solo periodos abiertos (para generar nóminas)
+  - O todos los periodos (para reportes)
+  
+□ PeriodoStatusBadge.vue
+  - Badge que muestra estado del periodo
+  - Verde = Abierto, Rojo = Cerrado
+  - Con tooltip informativo
+
+□ CalendarioPeriodos.vue
+  - Vista de calendario anual
+  - Cada mes muestra su estado
+  - Click para ver detalles
+
+□ ResumenPeriodo.vue
+  - Card con estadísticas del periodo
+  - Total nóminas, total pagado, etc.
+  - Usado antes de cerrar periodo
+
+12.7 Validaciones y Alertas Específicas
+----------------------------------------
+□ CREAR PERIODO:
+  ✅ "Periodo {periodo} creado exitosamente"
+  ❌ "Ya existe un periodo para {periodo}"
+  ❌ "Formato de periodo inválido. Use YYYY-MM"
+
+□ CERRAR PERIODO:
+  ⚠️ "¿Está seguro de cerrar el periodo {periodo}?"
+  ⚠️ "Esta acción NO se puede deshacer"
+  ⚠️ "Hay {N} empleados sin nómina en este periodo"
+  ✅ "Periodo {periodo} cerrado exitosamente"
+  ❌ "El periodo {periodo} ya está cerrado"
+  ❌ "El periodo {periodo} no existe"
+
+□ GENERAR NÓMINA:
+  ❌ "No se puede generar nómina. El periodo {periodo} está cerrado"
+  ℹ️ "Generando nómina para periodo abierto: {periodo}"
+
+12.8 Casos de Uso Especiales
+-----------------------------
+□ ESCENARIO 1: Inicio de operaciones
+  - Crear periodos históricos (si es necesario)
+  - Cerrar periodos pasados
+  - Abrir periodo actual
+
+□ ESCENARIO 2: Corrección de errores
+  - Si se cerró un periodo por error y hay que corregir:
+    * NO se puede reabrir
+    * Solución: Contactar administrador del sistema
+    * Considerar implementar rol de "Super Admin" que pueda reabrir
+
+□ ESCENARIO 3: Periodo futuro
+  - Se puede crear periodo del mes siguiente anticipadamente
+  - Útil para planificación
+  - Permite registrar novedades anticipadas
+
+□ INTEGRACIÓN CON OTROS MÓDULOS:
+  - ✓ Nóminas: Solo se pueden generar en periodos abiertos
+  - ✓ Novedades: Solo se pueden registrar en periodos abiertos
+  - ✓ Provisiones: Se generan automáticamente al generar nómina
+  - ✓ Dashboard: Mostrar estadísticas del periodo activo
+
+================================================================================
+FASE 13: MÓDULO DE REPORTES
+================================================================================
+
+13.1 Vistas de Reportes
+------------------------
+□ ReportesView.vue
+  - Selector de tipo de reporte
+  - Filtros y parámetros
+  - Previsualización
+  - Exportación (PDF, Excel)
+
+□ Tipos de reportes:
+  ├── Reporte de Nómina Mensual
+  ├── Reporte de Provisiones
+  ├── Reporte de Novedades
+  ├── Reporte por Departamento
+  ├── Reporte Anual de Empleado
+  └── Reporte Comparativo
+
+================================================================================
+FASE 14: AUTENTICACIÓN CON SUPABASE Y GESTIÓN DE ROLES
+================================================================================
+
+14.1 Concepto y Arquitectura de Autenticación
+----------------------------------------------
+📌 IMPORTANTE: Sistema completo de autenticación con Supabase
+
+□ STACK DE AUTENTICACIÓN:
+  - Supabase Auth - Gestión de usuarios y sesiones
+  - Row Level Security (RLS) - Seguridad a nivel de base de datos
+  - JWT Tokens - Autenticación stateless
+  - Roles y Permisos - Control de acceso granular
+
+□ FLUJO DE AUTENTICACIÓN:
+  1. Usuario ingresa credenciales en Login
+  2. Supabase Auth valida y retorna JWT token
+  3. Token se almacena en localStorage/sessionStorage
+  4. Token se incluye en todas las peticiones al backend
+  5. Backend valida token con Supabase
+  6. Se verifican roles y permisos para cada acción
+
+14.2 Configuración de Supabase
+-------------------------------
+□ SETUP INICIAL:
+  1. Crear proyecto en Supabase
+  2. Configurar Authentication
+     - Email + Password habilitado
+     - Configurar URLs de redirección
+     - Configurar templates de email
+  3. Obtener credenciales:
+     - SUPABASE_URL
+     - SUPABASE_ANON_KEY
+     - SUPABASE_SERVICE_ROLE_KEY (solo backend)
+
+□ VARIABLES DE ENTORNO (.env):
+  ```env
+  # Frontend
+  VITE_SUPABASE_URL=https://xxxxx.supabase.co
+  VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  
+  # Backend (para validación de tokens)
+  SUPABASE_URL=https://xxxxx.supabase.co
+  SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  ```
+
+14.3 Estructura de Base de Datos en Supabase
+---------------------------------------------
+📌 Tablas necesarias para gestión de usuarios y roles
+
+□ TABLA: users (extends auth.users)
+  ```sql
+  -- Supabase Auth ya provee auth.users
+  -- Creamos tabla pública para datos adicionales
+  CREATE TABLE public.user_profiles (
+    id UUID REFERENCES auth.users(id) PRIMARY KEY,
+    email TEXT NOT NULL,
+    first_name TEXT,
+    last_name TEXT,
+    role_id UUID REFERENCES roles(id),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  ```
+
+□ TABLA: roles
+  ```sql
+  CREATE TABLE public.roles (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    is_system_role BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  
+  -- Roles predefinidos
+  INSERT INTO roles (name, description, is_system_role) VALUES
+    ('SUPER_ADMIN', 'Administrador con acceso total al sistema', true),
+    ('ADMIN', 'Administrador con acceso a gestión de nóminas', true),
+    ('RRHH', 'Recursos Humanos - Gestión de empleados y nóminas', true),
+    ('EMPLEADO', 'Empleado - Solo lectura de sus propias nóminas', true);
+  ```
+
+□ TABLA: modules
+  ```sql
+  CREATE TABLE public.modules (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    display_name TEXT NOT NULL,
+    icon TEXT,
+    route TEXT NOT NULL,
+    description TEXT,
+    parent_module_id UUID REFERENCES modules(id),
+    order_index INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  
+  -- Módulos del sistema
+  INSERT INTO modules (name, display_name, icon, route, order_index) VALUES
+    ('dashboard', 'Dashboard', 'home', '/dashboard', 1),
+    ('personas', 'Personas', 'users', '/personas', 2),
+    ('empleados', 'Empleados', 'briefcase', '/empleados', 3),
+    ('departamentos', 'Departamentos', 'building', '/departamentos', 4),
+    ('nominas', 'Nóminas', 'calculator', '/nominas', 5),
+    ('novedades', 'Novedades', 'document', '/novedades', 6),
+    ('provisiones', 'Provisiones', 'chart', '/provisiones', 7),
+    ('parametros', 'Parámetros', 'settings', '/parametros', 8),
+    ('periodos', 'Períodos', 'calendar', '/periodos', 9),
+    ('reportes', 'Reportes', 'document-report', '/reportes', 10),
+    ('administracion', 'Administración', 'cog', '/administracion', 11);
+  ```
+
+□ TABLA: role_module_permissions
+  ```sql
+  CREATE TABLE public.role_module_permissions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
+    module_id UUID REFERENCES modules(id) ON DELETE CASCADE,
+    can_view BOOLEAN DEFAULT false,
+    can_create BOOLEAN DEFAULT false,
+    can_edit BOOLEAN DEFAULT false,
+    can_delete BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(role_id, module_id)
+  );
+  
+  -- Permisos para SUPER_ADMIN (acceso total)
+  INSERT INTO role_module_permissions (role_id, module_id, can_view, can_create, can_edit, can_delete)
+  SELECT 
+    (SELECT id FROM roles WHERE name = 'SUPER_ADMIN'),
+    id,
+    true, true, true, true
+  FROM modules;
+  ```
+
+□ ROW LEVEL SECURITY (RLS):
+  ```sql
+  -- Habilitar RLS en todas las tablas
+  ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE modules ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE role_module_permissions ENABLE ROW LEVEL SECURITY;
+  
+  -- Políticas de ejemplo
+  CREATE POLICY "Users can view their own profile"
+    ON user_profiles FOR SELECT
+    USING (auth.uid() = id);
+  
+  CREATE POLICY "Super admins can view all profiles"
+    ON user_profiles FOR SELECT
+    USING (
+      EXISTS (
+        SELECT 1 FROM user_profiles up
+        JOIN roles r ON up.role_id = r.id
+        WHERE up.id = auth.uid() AND r.name = 'SUPER_ADMIN'
+      )
+    );
+  ```
+
+14.4 Vistas de Autenticación
+-----------------------------
+□ Login.vue (Primera página del sistema)
+  - Campos:
+    * Email (text input, validación email)
+    * Password (password input, min 6 caracteres)
+    * Recordarme (checkbox, opcional)
+  - Acciones:
+    * Iniciar Sesión
+    * ¿Olvidó su contraseña? (link a recuperación)
+  - Validaciones:
+    * Email válido
+    * Password no vacío
+  - Estados:
+    * loading (mientras autentica)
+    * error (mensaje de error)
+  - Diseño:
+    * Centrado en pantalla
+    * Logo del sistema
+    * Branding corporativo
+
+□ RecuperarPassword.vue
+  - Enviar email de recuperación
+  - Formulario para nueva contraseña (con token)
+
+□ CambiarPassword.vue
+  - Para usuarios autenticados
+  - Campos: password actual, nueva password, confirmar
+
+14.5 Módulo de Administración de Usuarios
+------------------------------------------
+📌 SOLO ACCESIBLE POR ROL SUPER_ADMIN
+
+□ SUBMÓDULO EN SIDEBAR:
+  ```
+  Administración (solo si role = SUPER_ADMIN)
+  ├── Usuarios
+  ├── Roles
+  └── Permisos de Módulos
+  ```
+
+□ AdministracionUsuarios.vue
+  - Ruta: /administracion/usuarios
+  - Lista de usuarios registrados
+  - Tabla con columnas:
+    * Email
+    * Nombre completo
+    * Rol asignado
+    * Estado (Activo/Inactivo)
+    * Fecha de creación
+    * Acciones (Editar, Cambiar rol, Activar/Desactivar)
+  - Botón: + Nuevo Usuario
+  - Búsqueda y filtros por rol
+
+□ UsuarioForm.vue
+  - Crear/Editar usuario
+  - Campos:
+    * Email (requerido, único)
+    * Nombre
+    * Apellido
+    * Rol (SELECT dropdown de roles disponibles)
+    * Password (solo al crear, mínimo 6 caracteres)
+    * Estado (Activo/Inactivo)
+  - Validaciones:
+    * Email único
+    * Password seguro
+    * Rol válido
+
+□ AdministracionRoles.vue
+  - Ruta: /administracion/roles
+  - Lista de roles del sistema
+  - Tabla con columnas:
+    * Nombre del rol
+    * Descripción
+    * # de usuarios asignados
+    * Sistema (indica si es rol del sistema, no editable)
+    * Acciones (Editar permisos, Eliminar si no es sistema)
+  - Botón: + Nuevo Rol
+
+□ RolForm.vue
+  - Crear/Editar rol
+  - Campos:
+    * Nombre (requerido, único)
+    * Descripción
+  - No permitir editar roles de sistema (SUPER_ADMIN, ADMIN, etc.)
+
+□ PermisosPorRol.vue
+  - Ruta: /administracion/roles/:id/permisos
+  - Gestión de permisos por módulo para un rol
+  - Tabla/Matriz de permisos:
+    ```
+    Módulo          | Ver | Crear | Editar | Eliminar
+    ----------------|-----|-------|--------|----------
+    Dashboard       | ✓   | -     | -      | -
+    Personas        | ✓   | ✓     | ✓      | ✓
+    Empleados       | ✓   | ✓     | ✓      | ○
+    Nóminas         | ✓   | ✓     | ○      | ○
+    ...
+    ```
+  - Checkboxes para cada permiso
+  - Guardar cambios (actualiza role_module_permissions)
+
+14.6 Integración con Frontend (Vue.js)
+---------------------------------------
+□ INSTALACIÓN DE SUPABASE:
+  ```bash
+  npm install @supabase/supabase-js
+  ```
+
+□ CONFIGURACIÓN (src/lib/supabase.ts):
+  ```typescript
+  import { createClient } from '@supabase/supabase-js'
+  
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+  
+  export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+  
+  // Tipos
+  export interface UserProfile {
+    id: string
+    email: string
+    first_name: string
+    last_name: string
+    role_id: string
+    is_active: boolean
+  }
+  
+  export interface Role {
+    id: string
+    name: string
+    description: string
+    is_system_role: boolean
+  }
+  
+  export interface Module {
+    id: string
+    name: string
+    display_name: string
+    icon: string
+    route: string
+  }
+  
+  export interface RoleModulePermission {
+    id: string
+    role_id: string
+    module_id: string
+    can_view: boolean
+    can_create: boolean
+    can_edit: boolean
+    can_delete: boolean
+  }
+  ```
+
+□ AUTH STORE (stores/authStore.ts):
+  ```typescript
+  import { defineStore } from 'pinia'
+  import { ref, computed } from 'vue'
+  import { supabase } from '@/lib/supabase'
+  import type { User } from '@supabase/supabase-js'
+  import type { UserProfile, Role } from '@/lib/supabase'
+  
+  export const useAuthStore = defineStore('auth', () => {
+    // State
+    const user = ref<User | null>(null)
+    const userProfile = ref<UserProfile | null>(null)
+    const userRole = ref<Role | null>(null)
+    const permissions = ref<any[]>([])
+    const loading = ref(false)
+    const error = ref<string | null>(null)
+    
+    // Getters
+    const isAuthenticated = computed(() => !!user.value)
+    
+    const isSuperAdmin = computed(() => 
+      userRole.value?.name === 'SUPER_ADMIN'
+    )
+    
+    const isAdmin = computed(() => 
+      userRole.value?.name === 'SUPER_ADMIN' || 
+      userRole.value?.name === 'ADMIN'
+    )
+    
+    const canAccessModule = computed(() => {
+      return (moduleName: string) => {
+        if (isSuperAdmin.value) return true
+        const perm = permissions.value.find(p => p.module_name === moduleName)
+        return perm?.can_view || false
+      }
+    })
+    
+    const canCreate = computed(() => {
+      return (moduleName: string) => {
+        if (isSuperAdmin.value) return true
+        const perm = permissions.value.find(p => p.module_name === moduleName)
+        return perm?.can_create || false
+      }
+    })
+    
+    const canEdit = computed(() => {
+      return (moduleName: string) => {
+        if (isSuperAdmin.value) return true
+        const perm = permissions.value.find(p => p.module_name === moduleName)
+        return perm?.can_edit || false
+      }
+    })
+    
+    const canDelete = computed(() => {
+      return (moduleName: string) => {
+        if (isSuperAdmin.value) return true
+        const perm = permissions.value.find(p => p.module_name === moduleName)
+        return perm?.can_delete || false
+      }
+    })
+    
+    // Actions
+    async function login(email: string, password: string) {
+      loading.value = true
+      error.value = null
+      try {
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        })
+        
+        if (authError) throw authError
+        
+        user.value = data.user
+        await loadUserProfile()
+        await loadPermissions()
+        
+        return data
+      } catch (err: any) {
+        error.value = err.message
+        throw err
+      } finally {
+        loading.value = false
+      }
+    }
+    
+    async function logout() {
+      await supabase.auth.signOut()
+      user.value = null
+      userProfile.value = null
+      userRole.value = null
+      permissions.value = []
+    }
+    
+    async function loadUserProfile() {
+      if (!user.value) return
+      
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*, roles(*)')
+        .eq('id', user.value.id)
+        .single()
+      
+      if (data) {
+        userProfile.value = data
+        userRole.value = data.roles
+      }
+    }
+    
+    async function loadPermissions() {
+      if (!userProfile.value?.role_id) return
+      
+      const { data } = await supabase
+        .from('role_module_permissions')
+        .select('*, modules(*)')
+        .eq('role_id', userProfile.value.role_id)
+      
+      if (data) {
+        permissions.value = data.map(p => ({
+          module_name: p.modules.name,
+          can_view: p.can_view,
+          can_create: p.can_create,
+          can_edit: p.can_edit,
+          can_delete: p.can_delete
+        }))
+      }
+    }
+    
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        user.value = data.session.user
+        await loadUserProfile()
+        await loadPermissions()
+      }
+    }
+    
+    return {
+      // State
+      user,
+      userProfile,
+      userRole,
+      permissions,
+      loading,
+      error,
+      // Getters
+      isAuthenticated,
+      isSuperAdmin,
+      isAdmin,
+      canAccessModule,
+      canCreate,
+      canEdit,
+      canDelete,
+      // Actions
+      login,
+      logout,
+      loadUserProfile,
+      loadPermissions,
+      checkSession
+    }
+  })
+  ```
+
+14.7 Route Guards (Protección de Rutas)
+----------------------------------------
+□ ACTUALIZAR ROUTER (src/router/index.ts):
+  ```typescript
+  import { useAuthStore } from '@/stores/authStore'
+  
+  // Navigation Guards
+  router.beforeEach(async (to, from, next) => {
+    const authStore = useAuthStore()
+    
+    // Verificar sesión al cargar app
+    if (!authStore.user) {
+      await authStore.checkSession()
+    }
+    
+    // Rutas públicas
+    const publicRoutes = ['login', 'recuperar-password']
+    const isPublicRoute = publicRoutes.includes(to.name as string)
+    
+    // Si no está autenticado y no es ruta pública → Login
+    if (!authStore.isAuthenticated && !isPublicRoute) {
+      next({ name: 'login' })
+      return
+    }
+    
+    // Si está autenticado y va a login → Dashboard
+    if (authStore.isAuthenticated && to.name === 'login') {
+      next({ name: 'dashboard' })
+      return
+    }
+    
+    // Verificar permisos de módulo
+    if (to.meta.requiresAuth !== false && authStore.isAuthenticated) {
+      const moduleName = to.meta.module as string
+      
+      // Rutas de administración solo para SUPER_ADMIN
+      if (to.path.startsWith('/administracion') && !authStore.isSuperAdmin) {
+        next({ name: 'dashboard' })
+        return
+      }
+      
+      // Verificar acceso al módulo
+      if (moduleName && !authStore.canAccessModule(moduleName)) {
+        next({ name: 'dashboard' })
+        return
+      }
+    }
+    
+    next()
+  })
+  ```
+
+□ ACTUALIZAR RUTAS CON META:
+  ```typescript
+  {
+    path: '/empleados',
+    name: 'empleados',
+    component: () => import('@/views/empleados/EmpleadosList.vue'),
+    meta: { 
+      title: 'Empleados',
+      requiresAuth: true,
+      module: 'empleados'
+    }
+  },
+  {
+    path: '/administracion',
+    name: 'administracion',
+    component: () => import('@/layouts/AdminLayout.vue'),
+    meta: { 
+      requiresAuth: true,
+      requiresSuperAdmin: true
+    },
+    children: [
+      {
+        path: 'usuarios',
+        name: 'admin-usuarios',
+        component: () => import('@/views/administracion/AdministracionUsuarios.vue')
+      },
+      {
+        path: 'roles',
+        name: 'admin-roles',
+        component: () => import('@/views/administracion/AdministracionRoles.vue')
+      }
+    ]
+  }
+  ```
+
+14.8 Sidebar Dinámico con Permisos
+-----------------------------------
+□ ACTUALIZAR SIDEBAR (components/layout/Sidebar.vue):
+  ```vue
+  <template>
+    <aside class="sidebar">
+      <nav>
+        <ul>
+          <!-- Dashboard (siempre visible si autenticado) -->
+          <li v-if="authStore.canAccessModule('dashboard')">
+            <router-link to="/dashboard">
+              <Icon name="home" />
+              Dashboard
+            </router-link>
+          </li>
+          
+          <!-- Módulos funcionales -->
+          <li v-if="authStore.canAccessModule('personas')">
+            <router-link to="/personas">
+              <Icon name="users" />
+              Personas
+            </router-link>
+          </li>
+          
+          <li v-if="authStore.canAccessModule('empleados')">
+            <router-link to="/empleados">
+              <Icon name="briefcase" />
+              Empleados
+            </router-link>
+          </li>
+          
+          <!-- ... más módulos ... -->
+          
+          <!-- Administración (solo SUPER_ADMIN) -->
+          <li v-if="authStore.isSuperAdmin" class="submenu">
+            <div class="submenu-header">
+              <Icon name="cog" />
+              Administración
+            </div>
+            <ul class="submenu-items">
+              <li>
+                <router-link to="/administracion/usuarios">
+                  Usuarios
+                </router-link>
+              </li>
+              <li>
+                <router-link to="/administracion/roles">
+                  Roles
+                </router-link>
+              </li>
+              <li>
+                <router-link to="/administracion/permisos">
+                  Permisos
+                </router-link>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+  </template>
+  
+  <script setup lang="ts">
+  import { useAuthStore } from '@/stores/authStore'
+  
+  const authStore = useAuthStore()
+  </script>
+  ```
+
+14.9 Componentes Condicionales según Permisos
+----------------------------------------------
+□ BOTONES Y ACCIONES CONDICIONADAS:
+  ```vue
+  <!-- EmpleadosList.vue -->
+  <template>
+    <div>
+      <h1>Empleados</h1>
+      
+      <!-- Botón crear solo si tiene permiso -->
+      <button 
+        v-if="authStore.canCreate('empleados')"
+        @click="crearEmpleado"
+      >
+        + Nuevo Empleado
+      </button>
+      
+      <table>
+        <tr v-for="emp in empleados" :key="emp.id">
+          <td>{{ emp.nombre }}</td>
+          <td>
+            <!-- Acciones según permisos -->
+            <button 
+              v-if="authStore.canEdit('empleados')"
+              @click="editar(emp)"
+            >
+              Editar
+            </button>
+            <button 
+              v-if="authStore.canDelete('empleados')"
+              @click="eliminar(emp)"
+            >
+              Eliminar
+            </button>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </template>
+  ```
+
+14.10 Integración con Backend (C# .NET)
+----------------------------------------
+□ VALIDACIÓN DE TOKEN EN BACKEND:
+  - Instalar: Supabase.Gotrue (NuGet)
+  - Validar JWT en cada request
+  - Extraer user_id y role del token
+  - Aplicar lógica de permisos
+
+14.10 Integración con Backend (C# .NET)
+----------------------------------------
+□ VALIDACIÓN DE TOKEN EN BACKEND:
+  - Instalar: Supabase.Gotrue (NuGet)
+  - Validar JWT en cada request
+  - Extraer user_id y role del token
+  - Aplicar lógica de permisos
+
+14.11 Seguridad y Mejores Prácticas
+------------------------------------
+□ SEGURIDAD:
+  ✓ Tokens JWT con expiración (configurable en Supabase)
+  ✓ Refresh tokens automáticos
+  ✓ Row Level Security (RLS) en Supabase
+  ✓ HTTPS obligatorio en producción
+  ✓ Validación de permisos en frontend Y backend
+  ✓ Rate limiting en login (prevenir fuerza bruta)
+  ✓ Passwords hasheados (Supabase lo hace automáticamente)
+
+□ MEJORES PRÁCTICAS:
+  ✓ No almacenar contraseñas en frontend
+  ✓ Logout al expirar token
+  ✓ Limpiar localStorage al logout
+  ✓ Validar sesión al recargar página
+  ✓ Mensajes de error genéricos (no revelar si email existe)
+
+14.12 Flujo Completo del Usuario
+---------------------------------
+□ PRIMER USO DEL SISTEMA:
+  1. SUPER_ADMIN inicial creado manualmente en Supabase
+  2. SUPER_ADMIN accede con credenciales
+  3. SUPER_ADMIN crea roles personalizados (si necesita)
+  4. SUPER_ADMIN configura permisos por rol
+  5. SUPER_ADMIN crea usuarios y asigna roles
+  6. Usuarios reciben email con link para establecer password
+  7. Usuarios acceden al sistema con sus credenciales
+
+□ USO DIARIO:
+  1. Usuario ingresa a la URL del sistema
+  2. Si no está autenticado → Redirige a /login
+  3. Usuario ingresa email y password
+  4. Sistema valida credenciales con Supabase
+  5. Si es válido:
+     - Almacena token en localStorage
+     - Carga perfil de usuario
+     - Carga rol y permisos
+     - Redirige a /dashboard
+  6. Sidebar muestra solo módulos accesibles
+  7. Botones/acciones se muestran según permisos
+  8. Al hacer logout → Limpia sesión y vuelve a /login
+
+14.13 Ejemplo de Login.vue Completo
+------------------------------------
+```vue
+<template>
+  <div class="login-container">
+    <div class="login-card">
+      <!-- Logo -->
+      <div class="logo">
+        <img src="/logo.png" alt="WFN System" />
+        <h1>Sistema de Nóminas WFN</h1>
+      </div>
+      
+      <!-- Formulario -->
+      <form @submit.prevent="handleLogin">
+        <!-- Email -->
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            v-model="form.email"
+            type="email"
+            required
+            placeholder="usuario@empresa.com"
+            :disabled="loading"
+          />
+        </div>
+        
+        <!-- Password -->
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input
+            id="password"
+            v-model="form.password"
+            type="password"
+            required
+            placeholder="••••••••"
+            :disabled="loading"
+          />
+        </div>
+        
+        <!-- Recordarme -->
+        <div class="form-group-checkbox">
+          <input
+            id="remember"
+            v-model="form.remember"
+            type="checkbox"
+          />
+          <label for="remember">Recordarme</label>
+        </div>
+        
+        <!-- Error -->
+        <div v-if="error" class="error-message">
+          {{ error }}
+        </div>
+        
+        <!-- Botón -->
+        <button 
+          type="submit" 
+          class="btn-primary"
+          :disabled="loading"
+        >
+          <span v-if="!loading">Iniciar Sesión</span>
+          <span v-else>Ingresando...</span>
+        </button>
+      </form>
+      
+      <!-- Links -->
+      <div class="links">
+        <router-link to="/recuperar-password">
+          ¿Olvidó su contraseña?
+        </router-link>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const form = ref({
+  email: '',
+  password: '',
+  remember: false
+})
+
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+async function handleLogin() {
+  loading.value = true
+  error.value = null
+  
+  try {
+    await authStore.login(form.value.email, form.value.password)
+    
+    // Redirigir a dashboard
+    router.push({ name: 'dashboard' })
+  } catch (err: any) {
+    // Mensajes de error user-friendly
+    if (err.message.includes('Invalid login credentials')) {
+      error.value = 'Email o contraseña incorrectos'
+    } else if (err.message.includes('Email not confirmed')) {
+      error.value = 'Por favor confirme su email antes de iniciar sesión'
+    } else {
+      error.value = 'Error al iniciar sesión. Intente nuevamente.'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<style scoped>
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.login-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.logo {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.logo img {
+  width: 80px;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+}
+
+.error-message {
+  background: #fee;
+  color: #c00;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 0.75rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.links {
+  margin-top: 1rem;
+  text-align: center;
+}
+</style>
+```
+
+14.14 Administración de Usuarios - Store
+-----------------------------------------
+```typescript
+// stores/adminStore.ts
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { supabase } from '@/lib/supabase'
+
+export const useAdminStore = defineStore('admin', () => {
+  const usuarios = ref<any[]>([])
+  const roles = ref<any[]>([])
+  const modulos = ref<any[]>([])
+  const loading = ref(false)
+  
+  async function fetchUsuarios() {
+    loading.value = true
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('*, roles(*)')
+        .order('created_at', { ascending: false })
+      
+      usuarios.value = data || []
+    } finally {
+      loading.value = false
+    }
+  }
+  
+  async function fetchRoles() {
+    const { data } = await supabase
+      .from('roles')
+      .select('*')
+      .order('name')
+    
+    roles.value = data || []
+  }
+  
+  async function fetchModulos() {
+    const { data } = await supabase
+      .from('modules')
+      .select('*')
+      .order('order_index')
+    
+    modulos.value = data || []
+  }
+  
+  async function createUsuario(userData: any) {
+    // 1. Crear usuario en Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: userData.email,
+      password: userData.password,
+      email_confirm: true
+    })
+    
+    if (authError) throw authError
+    
+    // 2. Crear perfil
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .insert({
+        id: authData.user.id,
+        email: userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        role_id: userData.role_id,
+        is_active: true
+      })
+    
+    if (profileError) throw profileError
+    
+    await fetchUsuarios()
+  }
+  
+  async function updateUsuarioRole(userId: string, roleId: string) {
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ role_id: roleId })
+      .eq('id', userId)
+    
+    if (error) throw error
+    await fetchUsuarios()
+  }
+  
+  async function toggleUsuarioStatus(userId: string, isActive: boolean) {
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ is_active: !isActive })
+      .eq('id', userId)
+    
+    if (error) throw error
+    await fetchUsuarios()
+  }
+  
+  async function createRol(rolData: any) {
+    const { error } = await supabase
+      .from('roles')
+      .insert(rolData)
+    
+    if (error) throw error
+    await fetchRoles()
+  }
+  
+  async function updatePermisos(roleId: string, moduleId: string, permissions: any) {
+    const { error } = await supabase
+      .from('role_module_permissions')
+      .upsert({
+        role_id: roleId,
+        module_id: moduleId,
+        ...permissions
+      })
+    
+    if (error) throw error
+  }
+  
+  async function fetchPermisosPorRol(roleId: string) {
+    const { data } = await supabase
+      .from('role_module_permissions')
+      .select('*, modules(*)')
+      .eq('role_id', roleId)
+    
+    return data || []
+  }
+  
+  return {
+    usuarios,
+    roles,
+    modulos,
+    loading,
+    fetchUsuarios,
+    fetchRoles,
+    fetchModulos,
+    createUsuario,
+    updateUsuarioRole,
+    toggleUsuarioStatus,
+    createRol,
+    updatePermisos,
+    fetchPermisosPorRol
+  }
+})
+```
+
+14.15 Validaciones y Alertas de Seguridad
+------------------------------------------
+□ VALIDACIONES EN FORMULARIOS:
+  ✓ Email: formato válido, único en sistema
+  ✓ Password: mínimo 8 caracteres, mayúsculas, números
+  ✓ Rol: debe existir y ser válido
+  ✓ Confirmar antes de eliminar usuarios
+  ✓ No permitir auto-eliminación
+  ✓ No permitir eliminar SUPER_ADMIN si es el único
+
+□ ALERTAS DE SEGURIDAD:
+  ⚠️ "¿Está seguro de cambiar el rol de este usuario?"
+  ⚠️ "¿Está seguro de desactivar este usuario?"
+  ⚠️ "No puede eliminar un rol asignado a usuarios"
+  ⚠️ "Debe existir al menos un SUPER_ADMIN activo"
+  ℹ️ "El usuario recibirá un email para establecer su contraseña"
+
+14.16 Casos de Uso Especiales
+------------------------------
+□ PRIMER SUPER_ADMIN:
+  - Crear manualmente en Supabase Auth
+  - Agregar registro en user_profiles con role SUPER_ADMIN
+  - Usar para bootstrap del sistema
+
+□ RECUPERACIÓN DE ACCESO:
+  - Si se pierde acceso de SUPER_ADMIN
+  - Crear nuevo SUPER_ADMIN desde Supabase Dashboard
+  - Documentar proceso en README
+
+□ MIGRACIÓN DE USUARIOS:
+  - Si ya existen usuarios en otro sistema
+  - Importar con script SQL
+  - Enviar emails de bienvenida
+
+□ AUDITORÍA:
+  - Logging de cambios de roles
+  - Logging de cambios de permisos
+  - Historial de accesos (opcional, con trigger en Supabase)
+
+================================================================================
+FASE 15: CARACTERÍSTICAS ADICIONALES
+================================================================================
+
+15.1 Notificaciones
+--------------------
+□ Sistema de notificaciones toast
+□ Notificaciones de eventos importantes
+
+14.3 Búsqueda Global
+--------------------
+□ Componente de búsqueda global
+□ Buscar en empleados, nóminas, etc.
+
+14.4 Temas y Personalización
+-----------------------------
+□ Modo oscuro/claro
+□ Personalización de colores
+
+14.5 Internacionalización (i18n)
+--------------------------------
+□ Soporte multiidioma (Español/Inglés)
+
+================================================================================
+FASE 15: OPTIMIZACIÓN Y TESTING
+================================================================================
+
+15.1 Optimización
+-----------------
+□ Lazy loading de rutas
+□ Code splitting
+□ Optimización de imágenes
+□ Caché de datos
+
+15.2 Testing
+------------
+□ Unit tests (Vitest)
+□ Component tests
+□ E2E tests (Cypress/Playwright)
+
+15.3 Documentación
+------------------
+□ README.md
+□ Documentación de componentes
+□ Guía de estilos
+
+================================================================================
+FASE 16: DEPLOYMENT
+================================================================================
+
+16.1 Build y Deploy
+-------------------
+□ Configuración de build para producción
+□ CI/CD pipeline
+□ Deploy en AWS (S3 + CloudFront o Amplify)
+
+================================================================================
+CONFIGURACIÓN DE ROUTING (Vue Router)
+================================================================================
+
+A. ESTRUCTURA DE RUTAS
+-----------------------
+```typescript
+// src/router/index.ts
+import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteRecordRaw } from 'vue-router'
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    component: () => import('@/layouts/MainLayout.vue'),
+    children: [
+      {
+        path: '',
+        name: 'dashboard',
+        component: () => import('@/views/Dashboard.vue'),
+        meta: { title: 'Dashboard', icon: 'home' }
+      },
+      
+      // Personas
+      {
+        path: '/personas',
+        name: 'personas',
+        component: () => import('@/views/personas/PersonasList.vue'),
+        meta: { title: 'Personas', icon: 'users' }
+      },
+      {
+        path: '/personas/nuevo',
+        name: 'persona-nuevo',
+        component: () => import('@/views/personas/PersonaForm.vue'),
+        meta: { title: 'Nueva Persona' }
+      },
+      {
+        path: '/personas/:id',
+        name: 'persona-detalle',
+        component: () => import('@/views/personas/PersonaDetail.vue'),
+        meta: { title: 'Detalle Persona' }
+      },
+      {
+        path: '/personas/:id/editar',
+        name: 'persona-editar',
+        component: () => import('@/views/personas/PersonaForm.vue'),
+        meta: { title: 'Editar Persona' }
+      },
+      
+      // Empleados
+      {
+        path: '/empleados',
+        name: 'empleados',
+        component: () => import('@/views/empleados/EmpleadosList.vue'),
+        meta: { title: 'Empleados', icon: 'briefcase' }
+      },
+      {
+        path: '/empleados/nuevo',
+        name: 'empleado-nuevo',
+        component: () => import('@/views/empleados/EmpleadoForm.vue'),
+        meta: { title: 'Nuevo Empleado' }
+      },
+      {
+        path: '/empleados/:id',
+        name: 'empleado-detalle',
+        component: () => import('@/views/empleados/EmpleadoDetail.vue'),
+        meta: { title: 'Detalle Empleado' }
+      },
+      
+      // Departamentos
+      {
+        path: '/departamentos',
+        name: 'departamentos',
+        component: () => import('@/views/departamentos/DepartamentosList.vue'),
+        meta: { title: 'Departamentos', icon: 'building' }
+      },
+      
+      // Nóminas
+      {
+        path: '/nominas',
+        name: 'nominas',
+        component: () => import('@/views/nominas/NominasList.vue'),
+        meta: { title: 'Nóminas', icon: 'calculator' }
+      },
+      {
+        path: '/nominas/generar',
+        name: 'nomina-generar',
+        component: () => import('@/views/nominas/NominaGenerate.vue'),
+        meta: { title: 'Generar Nómina' }
+      },
+      {
+        path: '/nominas/:empleadoId/:periodo',
+        name: 'nomina-detalle',
+        component: () => import('@/views/nominas/NominaDetail.vue'),
+        meta: { title: 'Detalle Nómina' }
+      },
+      
+      // Novedades
+      {
+        path: '/novedades',
+        name: 'novedades',
+        component: () => import('@/views/novedades/NovedadesList.vue'),
+        meta: { title: 'Novedades', icon: 'document' }
+      },
+      
+      // Provisiones
+      {
+        path: '/provisiones',
+        name: 'provisiones',
+        component: () => import('@/views/provisiones/ProvisionesList.vue'),
+        meta: { title: 'Provisiones', icon: 'chart' }
+      },
+      
+      // Parámetros
+      {
+        path: '/parametros',
+        name: 'parametros',
+        component: () => import('@/views/parametros/ParametrosList.vue'),
+        meta: { title: 'Parámetros', icon: 'settings', requiresAdmin: true }
+      },
+      
+      // Workspaces (Periodos)
+      {
+        path: '/periodos',
+        name: 'periodos',
+        component: () => import('@/views/workspaces/WorkspacesList.vue'),
+        meta: { title: 'Periodos', icon: 'calendar', requiresAdmin: true }
+      },
+      
+      // Reportes
+      {
+        path: '/reportes',
+        name: 'reportes',
+        component: () => import('@/views/reportes/ReportesView.vue'),
+        meta: { title: 'Reportes', icon: 'document-report' }
+      }
+    ]
+  },
+  
+  // Rutas sin layout (futuro)
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/views/auth/Login.vue'),
+    meta: { requiresAuth: false }
+  },
+  
+  // 404 Not Found
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: () => import('@/views/NotFound.vue')
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    } else {
+      return { top: 0 }
+    }
+  }
+})
+
+// Navigation Guards (futuro con autenticación)
+router.beforeEach((to, from, next) => {
+  // Verificar autenticación
+  // const isAuthenticated = authStore.isAuthenticated
+  // if (to.meta.requiresAuth !== false && !isAuthenticated) {
+  //   next({ name: 'login' })
+  // } else {
+  //   next()
+  // }
+  next() // Por ahora permitir todo
+})
+
+export default router
+```
+
+B. META TAGS PERSONALIZADOS
+----------------------------
+□ title: Título de la página
+□ icon: Icono para el menú
+□ requiresAuth: Requiere autenticación (true por defecto)
+□ requiresAdmin: Solo para administradores
+□ breadcrumb: Para navegación de migas de pan
+
+================================================================================
+EJEMPLOS DE STORES CON PINIA
+================================================================================
+
+A. STORE DE EMPLEADOS
+----------------------
+```typescript
+// src/stores/empleadoStore.ts
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { empleadoAPI } from '@/api'
+import type { Empleado, CreateEmpleadoDTO } from '@/types/empleado.types'
+
+export const useEmpleadoStore = defineStore('empleado', () => {
+  // State
+  const empleados = ref<Empleado[]>([])
+  const selectedEmpleado = ref<Empleado | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  // Getters
+  const empleadosActivos = computed(() => 
+    empleados.value.filter(e => e.StatusLaboral === 0)
+  )
+  
+  const totalEmpleados = computed(() => empleados.value.length)
+  
+  const getEmpleadoById = computed(() => {
+    return (id: string) => empleados.value.find(e => e.ID_Empleado === id)
+  })
+
+  // Actions
+  async function fetchEmpleados() {
+    loading.value = true
+    error.value = null
+    try {
+      empleados.value = await empleadoAPI.getEmpleados()
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchEmpleadoById(id: string) {
+    loading.value = true
+    error.value = null
+    try {
+      selectedEmpleado.value = await empleadoAPI.getEmpleadoById(id)
+      return selectedEmpleado.value
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function createEmpleado(data: CreateEmpleadoDTO) {
+    loading.value = true
+    error.value = null
+    try {
+      const newEmpleado = await empleadoAPI.createEmpleado(data)
+      empleados.value.push(newEmpleado)
+      return newEmpleado
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function updateEmpleado(id: string, data: CreateEmpleadoDTO) {
+    loading.value = true
+    error.value = null
+    try {
+      const updated = await empleadoAPI.updateEmpleado(id, data)
+      const index = empleados.value.findIndex(e => e.ID_Empleado === id)
+      if (index !== -1) {
+        empleados.value[index] = updated
+      }
+      return updated
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function deleteEmpleado(id: string) {
+    loading.value = true
+    error.value = null
+    try {
+      await empleadoAPI.deleteEmpleado(id)
+      empleados.value = empleados.value.filter(e => e.ID_Empleado !== id)
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    // State
+    empleados,
+    selectedEmpleado,
+    loading,
+    error,
+    // Getters
+    empleadosActivos,
+    totalEmpleados,
+    getEmpleadoById,
+    // Actions
+    fetchEmpleados,
+    fetchEmpleadoById,
+    createEmpleado,
+    updateEmpleado,
+    deleteEmpleado
+  }
+})
+```
+
+B. STORE DE NÓMINAS
+--------------------
+```typescript
+// src/stores/nominaStore.ts
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { nominaAPI } from '@/api'
+import type { Nomina, GenerarNominaRequest } from '@/types/nomina.types'
+
+export const useNominaStore = defineStore('nomina', () => {
+  // State
+  const nominas = ref<Nomina[]>([])
+  const selectedNomina = ref<Nomina | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+  const periodo = ref<string>('')
+
+  // Getters
+  const nominasPorPeriodo = computed(() => {
+    if (!periodo.value) return nominas.value
+    return nominas.value.filter(n => n.Periodo === periodo.value)
+  })
+  
+  const totalNominas = computed(() => nominas.value.length)
+  
+  const totalAPagar = computed(() => 
+    nominas.value.reduce((sum, n) => sum + n.NetoAPagar, 0)
+  )
+
+  // Actions
+  async function fetchNominasByEmpleado(empleadoId: string) {
+    loading.value = true
+    error.value = null
+    try {
+      nominas.value = await nominaAPI.getNominasByEmpleado(empleadoId)
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchNominaByPeriodo(empleadoId: string, periodo: string) {
+    loading.value = true
+    error.value = null
+    try {
+      selectedNomina.value = await nominaAPI.getNominaByPeriodo(empleadoId, periodo)
+      return selectedNomina.value
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function generarNomina(request: GenerarNominaRequest) {
+    loading.value = true
+    error.value = null
+    try {
+      const nomina = await nominaAPI.generarNomina(request)
+      nominas.value.push(nomina)
+      return nomina
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function recalcularNomina(empleadoId: string, periodo: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const nomina = await nominaAPI.recalcularNomina({ EmpleadoId: empleadoId, Periodo: periodo })
+      const index = nominas.value.findIndex(n => 
+        n.ID_Empleado === empleadoId && n.Periodo === periodo
+      )
+      if (index !== -1) {
+        nominas.value[index] = nomina
+      }
+      return nomina
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    // State
+    nominas,
+    selectedNomina,
+    loading,
+    error,
+    periodo,
+    // Getters
+    nominasPorPeriodo,
+    totalNominas,
+    totalAPagar,
+    // Actions
+    fetchNominasByEmpleado,
+    fetchNominaByPeriodo,
+    generarNomina,
+    recalcularNomina
+  }
+})
+```
+
+C. STORE DE WORKSPACES
+-----------------------
+```typescript
+// src/stores/workspaceStore.ts
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { workspaceAPI } from '@/api'
+import type { WorkspaceNomina } from '@/types/workspace.types'
+
+export const useWorkspaceStore = defineStore('workspace', () => {
+  // State
+  const workspaces = ref<WorkspaceNomina[]>([])
+  const currentWorkspace = ref<WorkspaceNomina | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  // Getters
+  const periodosAbiertos = computed(() => 
+    workspaces.value.filter(w => w.Estado === 0)
+  )
+  
+  const periodosCerrados = computed(() => 
+    workspaces.value.filter(w => w.Estado === 1)
+  )
+  
+  const ultimoPeriodo = computed(() => 
+    workspaces.value[0] || null
+  )
+  
+  const isPeriodoAbierto = computed(() => {
+    return (periodo: string) => {
+      const ws = workspaces.value.find(w => w.Periodo === periodo)
+      return ws?.Estado === 0
+    }
+  })
+
+  // Actions
+  async function fetchWorkspaces() {
+    loading.value = true
+    error.value = null
+    try {
+      workspaces.value = await workspaceAPI.getWorkspaces()
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function crearPeriodo(periodo: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const workspace = await workspaceAPI.crearPeriodo(periodo)
+      workspaces.value.unshift(workspace)
+      return workspace
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function cerrarPeriodo(periodo: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const workspace = await workspaceAPI.cerrarPeriodo(periodo)
+      const index = workspaces.value.findIndex(w => w.Periodo === periodo)
+      if (index !== -1) {
+        workspaces.value[index] = workspace
+      }
+      return workspace
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    // State
+    workspaces,
+    currentWorkspace,
+    loading,
+    error,
+    // Getters
+    periodosAbiertos,
+    periodosCerrados,
+    ultimoPeriodo,
+    isPeriodoAbierto,
+    // Actions
+    fetchWorkspaces,
+    crearPeriodo,
+    cerrarPeriodo
+  }
+})
+```
+
+================================================================================
+PRIORIDADES INMEDIATAS (SPRINTS ACTUALIZADOS)
+================================================================================
+
+✓ SPRINT 1: CONFIGURACIÓN BASE + AUTENTICACIÓN
+  1. Configurar variables de entorno (.env)
+  2. Crear estructura de carpetas
+  3. Configurar instancia base de Axios (axiosInstance.ts)
+  4. ⭐ NUEVO: Configurar Supabase
+     - Crear proyecto en Supabase
+     - Configurar Auth
+     - Crear tablas (users, roles, modules, permissions)
+     - Configurar RLS
+  5. ⭐ NUEVO: Implementar Autenticación
+     - Crear authStore.ts
+     - Crear Login.vue (PRIMERA PÁGINA)
+     - Configurar route guards
+     - Implementar logout
+  6. Implementar Patrón Facade para APIs:
+     - Crear api/apiFacade.ts (facade base)
+     - Crear facades específicas (empleado, departamento, nomina, etc.)
+     - Crear api/index.ts (exportar todas las facades)
+  7. Definir tipos TypeScript principales (interfaces de modelos)
+  8. ⭐ NUEVO: Crear constantes de dropdown centralizadas
+
+✓ SPRINT 2: COMPONENTES BÁSICOS + ADMINISTRACIÓN
+  9. Crear componentes comunes (Button, Input, Card, Table, Modal)
+  10. Crear layout principal (MainLayout, Navbar, Sidebar)
+  11. Implementar sidebar dinámico con permisos
+  12. ⭐ NUEVO: Módulo de Administración (solo SUPER_ADMIN)
+      - AdministracionUsuarios.vue
+      - AdministracionRoles.vue
+      - PermisosPorRol.vue
+      - adminStore.ts
+  13. ⭐ NUEVO: Crear SUPER_ADMIN inicial en Supabase
+
+✓ SPRINT 3: DASHBOARD + MAESTROS
+  14. Crear vista del Dashboard
+  15. Implementar componentes de gráficos
+  16. Crear store de dashboard (usando facades)
+  17. Módulo de Departamentos (más simple)
+  18. Módulo de Personas
+  19. Módulo de Parámetros
+
+✓ SPRINT 4: EMPLEADOS + NOVEDADES
+  20. Módulo de Empleados (depende de Persona y Departamento)
+  21. Módulo de Banking (depende de Persona)
+  22. Módulo de Novedades (depende de Empleado y Parámetros)
+  23. Módulo de Workspaces (Gestión de periodos)
+
+✓ SPRINT 5: NÓMINAS
+  24. Módulo de Nóminas (depende de todo lo anterior)
+  25. Módulo de Provisiones (solo lectura)
+  26. Pruebas de cálculo de nómina
+
+✓ SPRINT 6: REPORTES Y OPTIMIZACIÓN
+  27. Módulo de Reportes
+  28. Exportaciones (PDF, Excel)
+  29. Optimizaciones y testing
+  30. Documentación final
+
+================================================================================
+CHECKLIST DE IMPLEMENTACIÓN - AUTENTICACIÓN CON SUPABASE
+================================================================================
+
+□ FASE 1: CONFIGURACIÓN DE SUPABASE
+  ☐ 1.1 Crear proyecto en Supabase.com
+  ☐ 1.2 Configurar Authentication → Email + Password
+  ☐ 1.3 Copiar credenciales (URL y ANON_KEY)
+  ☐ 1.4 Ejecutar scripts SQL para crear tablas:
+      - user_profiles
+      - roles
+      - modules
+      - role_module_permissions
+  ☐ 1.5 Insertar roles predefinidos (SUPER_ADMIN, ADMIN, RRHH, EMPLEADO)
+  ☐ 1.6 Insertar módulos del sistema (11 módulos)
+  ☐ 1.7 Configurar permisos para SUPER_ADMIN
+  ☐ 1.8 Habilitar Row Level Security (RLS)
+  ☐ 1.9 Crear políticas de RLS
+
+□ FASE 2: CONFIGURACIÓN FRONTEND
+  ☐ 2.1 Instalar @supabase/supabase-js
+  ☐ 2.2 Crear archivo .env con variables
+  ☐ 2.3 Crear src/lib/supabase.ts
+  ☐ 2.4 Crear tipos TypeScript (UserProfile, Role, Module, etc.)
+  ☐ 2.5 Crear stores/authStore.ts
+  ☐ 2.6 Crear stores/adminStore.ts
+
+□ FASE 3: VISTAS DE AUTENTICACIÓN
+  ☐ 3.1 Crear views/auth/Login.vue
+  ☐ 3.2 Crear views/auth/RecuperarPassword.vue
+  ☐ 3.3 Crear views/auth/CambiarPassword.vue
+  ☐ 3.4 Actualizar App.vue para manejar autenticación
+
+□ FASE 4: ROUTE GUARDS
+  ☐ 4.1 Actualizar router/index.ts con beforeEach guard
+  ☐ 4.2 Agregar meta.requiresAuth a todas las rutas protegidas
+  ☐ 4.3 Agregar meta.module a rutas que requieren permisos
+  ☐ 4.4 Agregar meta.requiresSuperAdmin a rutas de administración
+  ☐ 4.5 Redirigir a login si no autenticado
+  ☐ 4.6 Redirigir a dashboard si ya autenticado y va a login
+
+□ FASE 5: SIDEBAR DINÁMICO
+  ☐ 5.1 Actualizar Sidebar.vue para usar authStore
+  ☐ 5.2 Ocultar/mostrar módulos según permisos (v-if)
+  ☐ 5.3 Agregar sección "Administración" con v-if="isSuperAdmin"
+  ☐ 5.4 Agregar submenu con Usuarios, Roles, Permisos
+
+□ FASE 6: MÓDULO DE ADMINISTRACIÓN
+  ☐ 6.1 Crear views/administracion/AdministracionUsuarios.vue
+  ☐ 6.2 Crear views/administracion/UsuarioForm.vue
+  ☐ 6.3 Crear views/administracion/AdministracionRoles.vue
+  ☐ 6.4 Crear views/administracion/RolForm.vue
+  ☐ 6.5 Crear views/administracion/PermisosPorRol.vue
+  ☐ 6.6 Implementar CRUD completo de usuarios
+  ☐ 6.7 Implementar CRUD de roles
+  ☐ 6.8 Implementar matriz de permisos
+
+□ FASE 7: CREAR SUPER_ADMIN INICIAL
+  ☐ 7.1 Ir a Supabase Dashboard → Authentication
+  ☐ 7.2 Crear usuario manualmente (ej: admin@sistema.com)
+  ☐ 7.3 Copiar UUID del usuario creado
+  ☐ 7.4 Ejecutar SQL para crear perfil:
+      ```sql
+      INSERT INTO user_profiles (id, email, first_name, last_name, role_id, is_active)
+      VALUES (
+        'UUID-DEL-USUARIO',
+        'admin@sistema.com',
+        'Super',
+        'Admin',
+        (SELECT id FROM roles WHERE name = 'SUPER_ADMIN'),
+        true
+      );
+      ```
+  ☐ 7.5 Probar login con credenciales
+
+□ FASE 8: VALIDACIONES Y SEGURIDAD
+  ☐ 8.1 Validar email único al crear usuario
+  ☐ 8.2 Validar password seguro (min 8 caracteres)
+  ☐ 8.3 Confirmar antes de eliminar usuarios
+  ☐ 8.4 No permitir auto-eliminación
+  ☐ 8.5 Validar que exista al menos 1 SUPER_ADMIN activo
+  ☐ 8.6 Implementar manejo de errores en login
+  ☐ 8.7 Implementar mensajes user-friendly
+
+□ FASE 9: COMPONENTES CONDICIONALES
+  ☐ 9.1 Actualizar todos los botones "Crear" con v-if="canCreate()"
+  ☐ 9.2 Actualizar todos los botones "Editar" con v-if="canEdit()"
+  ☐ 9.3 Actualizar todos los botones "Eliminar" con v-if="canDelete()"
+  ☐ 9.4 Deshabilitar campos de formulario si no tiene permisos
+
+□ FASE 10: TESTING
+  ☐ 10.1 Probar login con credenciales correctas
+  ☐ 10.2 Probar login con credenciales incorrectas
+  ☐ 10.3 Probar que sidebar muestre solo módulos permitidos
+  ☐ 10.4 Probar creación de usuario como SUPER_ADMIN
+  ☐ 10.5 Probar asignación de roles
+  ☐ 10.6 Probar configuración de permisos
+  ☐ 10.7 Probar acceso a módulos con usuario limitado
+  ☐ 10.8 Probar logout
+  ☐ 10.9 Probar recuperación de password
+  ☐ 10.10 Probar que routes guards funcionen
+
+================================================================================
+LIBRERÍAS ADICIONALES RECOMENDADAS
+================================================================================
+
+□ Chart.js o ApexCharts - Para gráficos
+□ date-fns o dayjs - Manejo de fechas
+□ vee-validate + yup - Validación de formularios
+□ vue-i18n - Internacionalización
+□ @vueuse/core - Composables útiles
+□ pdfmake o jsPDF - Generación de PDFs
+□ xlsx - Exportación a Excel
+□ heroicons o lucide-vue - Iconos
+
+================================================================================
+NOTAS IMPORTANTES
+================================================================================
+
+- El dashboard es el punto de entrada principal después del login
+- Debe ser responsive (mobile-first)
+- Todos los datos deben venir del backend desarrollado
+- Implementar manejo de errores robusto
+- Feedback visual para todas las acciones del usuario
+- Optimizar para rendimiento (muchos datos de nómina)
+- Considerar accesibilidad (a11y)
+
+================================================================================
+INFORMACIÓN ADICIONAL CRÍTICA PARA EL FRONTEND
+================================================================================
+
+A. MODELO DIRECCION (Objeto Anidado en Persona)
+------------------------------------------------
+📌 Direccion NO es una entidad independiente, es un objeto anidado en Persona
+
+□ ESTRUCTURA:
+  ```typescript
+  interface Direccion {
+    Calle: string;
+    Numero: string;
+    Piso: string;
+  }
+  ```
+
+□ USO EN PERSONA:
+  - Persona tiene una propiedad Direccion de tipo Direccion
+  - Se envía como objeto anidado en el JSON
+  - Todos los campos son opcionales (string vacío por defecto)
+
+B. ENDPOINT ESPECIAL: RECALCULAR NÓMINA
+----------------------------------------
+📌 Permite recalcular una nómina existente (útil si hay cambios en novedades)
+
+□ ENDPOINT:
+  POST /api/nomina/recalcular
+  Body: { "EmpleadoId": "string", "Periodo": "string" }
+
+□ COMPORTAMIENTO:
+  1. Verifica que la nómina exista
+  2. Elimina la nómina existente
+  3. Genera nueva nómina con datos actualizados
+  4. Recalcula con novedades actuales del periodo
+  5. Regenera provisiones
+
+□ CASOS DE USO:
+  - Se agregaron/modificaron novedades después de generar nómina
+  - Se corrigió el salario base del empleado
+  - Mostrar botón "Recalcular" en vista de nómina
+
+C. FORMATO DE FECHAS Y PERIODOS
+--------------------------------
+📌 IMPORTANTE: Estandarización de formatos
+
+□ PERIODO (YYYY-MM):
+  - Formato: "2025-11"
+  - Validación regex: /^\d{4}-(0[1-9]|1[0-2])$/
+  
+□ FECHAS ISO (YYYY-MM-DD):
+  - Formato: "2025-11-29"
+  - Usado en: DateCreated, FechaIngreso, DateBirthday
+  
+□ DATETIME ISO (YYYY-MM-DDThh:mm:ssZ):
+  - Formato: "2025-11-29T14:30:00Z"
+  - Usado en: FechaCalculo de nóminas
+
+D. ENUMERACIONES IMPORTANTES
+-----------------------------
+□ StatusLaboral (Empleado):
+  - Active = 0 (Activo, genera nómina)
+  - Inactive = 1 (Inactivo, no genera nómina)
+  - OnLeave = 2 (Con licencia)
+  - Retired = 3 (Retirado)
+
+□ EstadoWorkspace:
+  - Abierto = 0 (permite cambios)
+  - Cerrado = 1 (periodo finalizado)
+
+□ TipoParametro / TipoNovedad:
+  - "INGRESO" | "EGRESO" | "PROVISION"
+
+□ Gender (Persona):
+  - "M" | "F"
+
+E. ESTRUCTURA DE RESPUESTAS DE ERROR
+-------------------------------------
+□ Formato estándar:
+  ```json
+  {
+    "message": "Descripción del error",
+    "error": "Detalles técnicos"
+  }
+  ```
+
+□ Códigos HTTP:
+  - 200: OK
+  - 201: Created
+  - 400: Bad Request (validación)
+  - 404: Not Found
+  - 500: Internal Server Error
+
+F. ORDEN DE IMPLEMENTACIÓN SUGERIDO
+------------------------------------
+□ SPRINT 1: Configuración + Departamentos + Personas + Parámetros + Workspaces
+□ SPRINT 2: Empleados + Banking + Novedades
+□ SPRINT 3: Nóminas + Provisiones + Dashboard
+□ SPRINT 4: Reportes + Exportaciones + Testing
+
+G. CHECKLIST DE VALIDACIONES FRONTEND
+--------------------------------------
+□ ANTES DE ENVIAR:
+  ✓ Validar formato de periodo (YYYY-MM)
+  ✓ Validar campos requeridos no vacíos
+  ✓ Validar rangos numéricos (salario > 0)
+  ✓ Validar formatos de email y DNI
+
+□ DESPUÉS DE RECIBIR:
+  ✓ Verificar código HTTP
+  ✓ Mostrar mensajes user-friendly
+  ✓ Actualizar estado global (Pinia)
+  ✓ Invalidar caché si necesario
+
+H. MANEJO DE ESTADOS DE CARGA
+------------------------------
+□ Estados: loading, error, success, idle
+□ Feedback visual: Spinners, toasts, skeleton loaders
+□ Disable buttons durante proceso
+□ Try-catch en todas las llamadas API
+
+I. CONSTANTES Y OPCIONES DE DROPDOWN (CENTRALIZADO)
+----------------------------------------------------
+⚠️ CRÍTICO: Crear archivo central con todas las opciones de dropdown
+
+□ Archivo: src/constants/dropdownOptions.ts
+  ```typescript
+  export interface DropdownOption {
+    value: string | number
+    label: string
+  }
+  
+  // Status Laboral
+  export const STATUS_LABORAL_OPTIONS: DropdownOption[] = [
+    { value: 0, label: 'Activo' },
+    { value: 1, label: 'Inactivo' },
+    { value: 2, label: 'Con Licencia' },
+    { value: 3, label: 'Retirado' }
+  ]
+  
+  // Género
+  export const GENDER_OPTIONS: DropdownOption[] = [
+    { value: 'M', label: 'Masculino' },
+    { value: 'F', label: 'Femenino' }
+  ]
+  
+  // Tipo de Parámetro/Novedad
+  export const TIPOS_PARAMETRO: DropdownOption[] = [
+    { value: 'INGRESO', label: 'Ingreso' },
+    { value: 'EGRESO', label: 'Egreso' },
+    { value: 'PROVISION', label: 'Provisión' }
+  ]
+  
+  export const TIPOS_NOVEDAD: DropdownOption[] = [
+    { value: 'INGRESO', label: 'Ingreso' },
+    { value: 'EGRESO', label: 'Egreso' }
+  ]
+  
+  // Tipos de Cálculo - INGRESO
+  export const TIPOS_CALCULO_INGRESO: DropdownOption[] = [
+    { value: 'HORAS_EXTRAS_50', label: 'Horas extras al 50%' },
+    { value: 'HORAS_EXTRAS_100', label: 'Horas extras al 100%' },
+    { value: 'SIMPLE', label: 'Valor fijo (variables, bonos)' },
+    { value: 'DECIMO_TERCERO', label: 'Décimo tercero mensualizado' },
+    { value: 'DECIMO_CUARTO', label: 'Décimo cuarto mensualizado' },
+    { value: 'FONDOS_RESERVA', label: 'Fondos de reserva mensualizado' }
+  ]
+  
+  // Tipos de Cálculo - EGRESO
+  export const TIPOS_CALCULO_EGRESO: DropdownOption[] = [
+    { value: 'IESS_PERSONAL', label: 'IESS personal (9.45%)' },
+    { value: 'IESS_EXTENSION', label: 'IESS extensión cónyuge (3.41%)' },
+    { value: 'IMPUESTO_RENTA', label: 'Impuesto a la renta' },
+    { value: 'EGRESO', label: 'Descuento simple (valor fijo)' }
+  ]
+  
+  // Tipos de Cálculo - PROVISION
+  export const TIPOS_CALCULO_PROVISION: DropdownOption[] = [
+    { value: 'PROVISION_VACACIONES', label: 'Provisión vacaciones' },
+    { value: 'IESS_PATRONAL', label: 'IESS patronal (12.15%)' },
+    { value: 'DECIMO_TERCERO_ACUMULADO', label: 'Décimo 13° acumulado' },
+    { value: 'DECIMO_CUARTO_ACUMULADO', label: 'Décimo 14° acumulado' },
+    { value: 'FONDOS_RESERVA_ACUMULADO', label: 'Fondos reserva acumulado' }
+  ]
+  
+  // Helper function
+  export function getTiposCalculoByTipo(tipo: string): DropdownOption[] {
+    switch (tipo) {
+      case 'INGRESO':
+        return TIPOS_CALCULO_INGRESO
+      case 'EGRESO':
+        return TIPOS_CALCULO_EGRESO
+      case 'PROVISION':
+        return TIPOS_CALCULO_PROVISION
+      default:
+        return []
+    }
+  }
+  
+  // Tipo de Cuenta Bancaria
+  export const TIPO_CUENTA_OPTIONS: DropdownOption[] = [
+    { value: 'Cuenta de ahorros', label: 'Cuenta de ahorros' },
+    { value: 'Cuenta corriente', label: 'Cuenta corriente' }
+  ]
+  
+  // Estado Workspace
+  export const ESTADO_WORKSPACE_OPTIONS: DropdownOption[] = [
+    { value: 0, label: 'Abierto' },
+    { value: 1, label: 'Cerrado' }
+  ]
+  ```
+
+□ USO EN COMPONENTES:
+  ```vue
+  <script setup lang="ts">
+  import { STATUS_LABORAL_OPTIONS, GENDER_OPTIONS } from '@/constants/dropdownOptions'
+  </script>
+  
+  <template>
+    <!-- Género -->
+    <select v-model="form.Gender">
+      <option value="">Seleccione género</option>
+      <option 
+        v-for="option in GENDER_OPTIONS" 
+        :key="option.value"
+        :value="option.value"
+      >
+        {{ option.label }}
+      </option>
+    </select>
+    
+    <!-- Status Laboral -->
+    <select v-model="form.StatusLaboral">
+      <option value="">Seleccione estado</option>
+      <option 
+        v-for="option in STATUS_LABORAL_OPTIONS" 
+        :key="option.value"
+        :value="option.value"
+      >
+        {{ option.label }}
+      </option>
+    </select>
+  </template>
+  ```
+
+□ VENTAJAS:
+  ✓ Valores consistentes en toda la aplicación
+  ✓ Fácil mantenimiento (un solo lugar)
+  ✓ Evita errores de escritura
+  ✓ Validación automática por TypeScript
+  ✓ Reutilizable en múltiples componentes
+
+J. TESTING - DATOS DE PRUEBA
+-----------------------------
+□ EMPLEADO 1 - SOFIA LAVERDE (DNI: 1724088701):
+  - Salario: $700
+  - Décimos: Mensualizados
+  - Usar Example.txt para validar cálculos
+
+□ EMPLEADO 2 - CATALINA RODRIGUEZ (DNI: 1718332701):
+  - Salario: $975
+  - Décimos: Acumulados
+  - Usar Example.txt para validar cálculos
+
+================================================================================
+FIN DEL PLAN
+================================================================================
+
