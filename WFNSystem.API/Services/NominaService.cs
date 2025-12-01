@@ -76,21 +76,26 @@ public class NominaService : INominaService
 
     public async Task<Nomina> GenerarNominaAsync(string empleadoId, string periodo)
     {
-        // ========== 1. Validar periodo abierto ==========
+        // ========== 1. Verificar si ya existe nómina ==========
+        var nominaExistente = await _nominaRepo.GetByPeriodoAsync(empleadoId, periodo);
+        if (nominaExistente != null)
+            throw new ArgumentException($"Ya existe una nómina para el empleado {empleadoId} en el periodo {periodo}. Use recalcular para actualizar.");
+
+        // ========== 2. Validar periodo abierto ==========
         var workspace = await _workspaceService.GetByPeriodoAsync(periodo);
         if (workspace == null || workspace.Estado != 0)
             throw new Exception($"El periodo {periodo} no está abierto.");
 
-        // ========== 2. Cargar empleado ==========
+        // ========== 3. Cargar empleado ==========
         var empleado = await _empleadoRepo.GetByIdAsync(empleadoId);
         if (empleado == null)
             throw new Exception("El empleado no existe.");
 
-        // ========== 3. Cargar novedades y parámetros ==========
+        // ========== 4. Cargar novedades y parámetros ==========
         var novedades = (await _novedadRepo.GetByPeriodoAsync(empleadoId, periodo)).ToList();
         var parametros = (await _parametroRepo.GetAllAsync()).ToDictionary(p => p.ID_Parametro);
 
-        // ========== 4. Crear nómina base ==========
+        // ========== 5. Crear nómina base ==========
         var nomina = new Nomina
         {
             PK = $"EMP#{empleadoId}",
@@ -102,19 +107,19 @@ public class NominaService : INominaService
             IsCerrada = false
         };
 
-        // ========== 5. Calcular ingresos ==========
+        // ========== 6. Calcular ingresos ==========
         await CalcularIngresosAsync(nomina, empleado, novedades, parametros);
 
-        // ========== 6. Calcular egresos ==========
+        // ========== 7. Calcular egresos ==========
         await CalcularEgresosAsync(nomina, empleado, novedades, parametros);
 
-        // ========== 7. Procesar provisiones ==========
+        // ========== 8. Procesar provisiones ==========
         await CalcularProvisionesAsync(nomina, empleado);
 
-        // ========== 8. Calcular neto a pagar ==========
+        // ========== 9. Calcular neto a pagar ==========
         CalcularNetoAPagar(nomina);
 
-        // ========== 9. Guardar la nómina ==========
+        // ========== 10. Guardar la nómina ==========
         await _nominaRepo.AddAsync(nomina);
 
         return nomina;

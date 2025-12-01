@@ -6,11 +6,9 @@ import {
   UsersIcon,
   BuildingOfficeIcon,
   CurrencyDollarIcon,
-  DocumentTextIcon,
   ChartBarIcon,
   Cog6ToothIcon,
   FolderIcon,
-  CalendarIcon,
   DocumentChartBarIcon,
   ShieldCheckIcon,
 } from '@heroicons/vue/24/outline'
@@ -38,11 +36,9 @@ const menuItems: MenuItem[] = [
     moduleName: 'departamentos',
   },
   { name: 'Nóminas', route: '/nominas', icon: CurrencyDollarIcon, moduleName: 'nominas' },
-  { name: 'Novedades', route: '/novedades', icon: DocumentTextIcon, moduleName: 'novedades' },
-  // Banking se accede desde Persona → Detalle → Cuentas Bancarias
+  // Novedades y Workspaces se acceden desde Nóminas
   { name: 'Provisiones', route: '/provisiones', icon: ChartBarIcon, moduleName: 'provisiones' },
   { name: 'Parámetros', route: '/parametros', icon: Cog6ToothIcon, moduleName: 'parametros' },
-  { name: 'Workspaces', route: '/workspaces', icon: CalendarIcon, moduleName: 'workspaces' },
   { name: 'Reportes', route: '/reportes', icon: DocumentChartBarIcon, moduleName: 'reportes' },
 ]
 

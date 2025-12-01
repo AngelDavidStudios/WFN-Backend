@@ -25,8 +25,11 @@ const BankingListView = () => import('@/views/banking/BankingListView.vue')
 const BankingDetailView = () => import('@/views/banking/BankingDetailView.vue')
 const BankingFormView = () => import('@/views/banking/BankingFormView.vue')
 
-// Nóminas
-const NominaListView = () => import('@/views/nominas/NominaListView.vue')
+// Nóminas (Workspaces → Nóminas → Novedades)
+const NominaWorkspaceListView = () => import('@/views/nominas/NominaWorkspaceListView.vue')
+const NominaPeriodoListView = () => import('@/views/nominas/NominaPeriodoListView.vue')
+const NominaDetailView = () => import('@/views/nominas/NominaDetailView.vue')
+const NovedadListView = () => import('@/views/novedades/NovedadListView.vue')
 
 const routes: RouteRecordRaw[] = [
   // Public routes
@@ -125,20 +128,30 @@ const routes: RouteRecordRaw[] = [
         meta: { module: 'departamentos' },
       },
 
-      // Nóminas routes
+      // Nóminas routes (Workspaces → Nóminas → Novedades)
       {
         path: 'nominas',
         name: 'nominas',
-        component: NominaListView,
+        component: NominaWorkspaceListView,
         meta: { module: 'nominas' },
       },
-
-      // Novedades routes
       {
-        path: 'novedades',
-        name: 'novedades',
-        component: () => import('@/views/novedades/NovedadListView.vue'),
-        meta: { module: 'novedades' },
+        path: 'nominas/periodo/:periodo',
+        name: 'nominas-periodo',
+        component: NominaPeriodoListView,
+        meta: { module: 'nominas' },
+      },
+      {
+        path: 'nominas/periodo/:periodo/empleado/:empleadoId',
+        name: 'nomina-detail',
+        component: NominaDetailView,
+        meta: { module: 'nominas' },
+      },
+      {
+        path: 'nominas/periodo/:periodo/empleado/:empleadoId/novedades',
+        name: 'novedades-empleado',
+        component: NovedadListView,
+        meta: { module: 'nominas' },
       },
 
       // Banking routes (Cuentas Bancarias)
@@ -183,13 +196,6 @@ const routes: RouteRecordRaw[] = [
         meta: { module: 'parametros' },
       },
 
-      // Workspaces routes
-      {
-        path: 'workspaces',
-        name: 'workspaces',
-        component: () => import('@/views/workspaces/WorkspaceListView.vue'),
-        meta: { module: 'workspaces' },
-      },
 
       // Reportes routes (placeholder)
       {
@@ -257,6 +263,15 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   next()
+})
+
+// Error handler para capturar errores de navegación
+router.onError((error) => {
+  console.error('Router navigation error:', error)
+  // Si hay un error de navegación, redirigir al dashboard
+  if (!router.currentRoute.value.matched.length) {
+    router.push('/dashboard')
+  }
 })
 
 export default router
