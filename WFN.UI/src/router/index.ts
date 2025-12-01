@@ -150,7 +150,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'nominas/periodo/:periodo/empleado/:empleadoId/novedades',
         name: 'novedades-empleado',
-        component: NovedadListView,
+        component: () => import('@/views/nominas/NovedadNominaView.vue'),
         meta: { module: 'nominas' },
       },
 
