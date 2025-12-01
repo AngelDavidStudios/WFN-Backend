@@ -38,21 +38,42 @@ export const TIPO_PARAMETRO_OPTIONS: DropdownOption<TipoParametro>[] = [
 ]
 
 // Tipos de cálculo para ingresos
+// Tipos de cálculo para ingresos
 export const TIPOS_CALCULO_INGRESO: DropdownOption<string>[] = [
-  { value: 'HORAS_EXTRAS_50', label: 'Horas extras al 50%' },
-  { value: 'HORAS_EXTRAS_100', label: 'Horas extras al 100%' },
-  { value: 'SIMPLE', label: 'Monto Simple' },
-  { value: 'DECIMO_TERCERO', label: 'Décimo Tercero' },
-  { value: 'DECIMO_CUARTO', label: 'Décimo Cuarto' },
-  { value: 'FONDOS_RESERVA', label: 'Fondos de Reserva' },
+  { value: 'SALARIO_BASE', label: 'Salario Base' },
+  { value: 'VARIABLE', label: 'Variable' },
+  { value: 'COMISIONES', label: 'Comisiones' },
+  { value: 'TRANSPORTE', label: 'Transporte' },
+  { value: 'NRO50', label: 'Horas Extras 50% (NRO50)' },
+  { value: 'HORAS_EXTRAS_50', label: 'Horas Extras al 50%' },
+  { value: 'NRO100', label: 'Horas Extras 100% (NRO100)' },
+  { value: 'HORAS_EXTRAS_100', label: 'Horas Extras al 100%' },
+  { value: 'DECIMO_TERCERO_MENSUAL', label: 'Décimo Tercero Mensual' },
+  { value: 'DECIMO_CUARTO_MENSUAL', label: 'Décimo Cuarto Mensual' },
+  { value: 'FONDOS_RESERVA_MENSUAL', label: 'Fondos de Reserva Mensual' },
 ]
 
 // Tipos de cálculo para egresos
 export const TIPOS_CALCULO_EGRESO: DropdownOption<string>[] = [
   { value: 'IESS_PERSONAL', label: 'IESS Aporte Personal (9.45%)' },
-  { value: 'IESS_EXTENSION', label: 'IESS Extensión (3.41%)' },
+  { value: 'IESS_EXTENSION_CONYUGE', label: 'IESS Extensión Cónyuge (3.41%)' },
+  { value: 'IESS_EXTENSION_CONVIVIENTE', label: 'IESS Extensión Conviviente (3.41%)' },
   { value: 'IMPUESTO_RENTA', label: 'Impuesto a la Renta' },
-  { value: 'EGRESO', label: 'Egreso Simple' },
+  { value: 'PRESTAMO_QUIROGRAFARIO', label: 'Préstamo Quirografario' },
+  { value: 'PRESTAMO_HIPOTECARIO', label: 'Préstamo Hipotecario' },
+  { value: 'PRESTAMOS_EMPLEADOS', label: 'Préstamos a Empleados' },
+  { value: 'ANTICIPOS_EMPLEADOS', label: 'Anticipos Empleados' },
+  { value: 'COMPRA_ALMACEN', label: 'Compra Almacén' },
+  { value: 'GIMNASIO', label: 'Gimnasio' },
+  { value: 'COMISARIATO', label: 'Comisariato' },
+  { value: 'CATERING', label: 'Catering' },
+  { value: 'CONSUMO_CELULAR', label: 'Consumo Celular' },
+  { value: 'COMPRA_CELULAR', label: 'Compra Celular' },
+  { value: 'FALTA_INJUSTIFICADA', label: 'Falta Injustificada' },
+  { value: 'SEGURO_VIDA', label: 'Seguro de Vida' },
+  { value: 'PENSION_ALIMENTICIA', label: 'Pensión Alimenticia' },
+  { value: 'SUBSIDIO_IESS_ENFERMEDAD', label: 'Subsidio IESS Enfermedad' },
+  { value: 'NOTA_CREDITO_IESS_MATERNIDAD', label: 'Nota Crédito IESS Maternidad' },
 ]
 
 // Tipos de cálculo para provisiones
