@@ -106,8 +106,13 @@ public class BankingService: IBankingService
         if (!string.IsNullOrWhiteSpace(banking.AccountType))
         {
             var tipoNormalizado = banking.AccountType.ToUpper();
-            if (tipoNormalizado != "AHORRO" && tipoNormalizado != "CORRIENTE" && tipoNormalizado != "SAVING" && tipoNormalizado != "CHECKING")
-                throw new ArgumentException("El tipo de cuenta debe ser 'AHORRO', 'CORRIENTE', 'SAVING' o 'CHECKING'.");
+            if (tipoNormalizado != "AHORRO" && 
+                tipoNormalizado != "AHORROS" && 
+                tipoNormalizado != "CORRIENTE" && 
+                tipoNormalizado != "SAVING" && 
+                tipoNormalizado != "SAVINGS" && 
+                tipoNormalizado != "CHECKING")
+                throw new ArgumentException("El tipo de cuenta debe ser 'AHORROS', 'CORRIENTE', 'SAVINGS' o 'CHECKING'.");
         }
 
         // Validar país
