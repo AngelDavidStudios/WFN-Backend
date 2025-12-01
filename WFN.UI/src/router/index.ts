@@ -20,6 +20,11 @@ const EmpleadoFormView = () => import('@/views/empleados/EmpleadoFormView.vue')
 const DepartamentoListView = () => import('@/views/departamentos/DepartamentoListView.vue')
 const DepartamentoFormView = () => import('@/views/departamentos/DepartamentoFormView.vue')
 
+// Banking
+const BankingListView = () => import('@/views/banking/BankingListView.vue')
+const BankingDetailView = () => import('@/views/banking/BankingDetailView.vue')
+const BankingFormView = () => import('@/views/banking/BankingFormView.vue')
+
 // Nóminas
 const NominaListView = () => import('@/views/nominas/NominaListView.vue')
 
@@ -136,12 +141,30 @@ const routes: RouteRecordRaw[] = [
         meta: { module: 'novedades' },
       },
 
-      // Banking routes (placeholder)
+      // Banking routes (Cuentas Bancarias)
       {
-        path: 'banking',
-        name: 'banking',
-        component: () => import('@/views/PlaceholderView.vue'),
-        meta: { module: 'banking', title: 'Banking' },
+        path: 'banking/persona/:personaId',
+        name: 'banking-list',
+        component: BankingListView,
+        meta: { module: 'banking' },
+      },
+      {
+        path: 'banking/persona/:personaId/nuevo',
+        name: 'banking-create',
+        component: BankingFormView,
+        meta: { module: 'banking' },
+      },
+      {
+        path: 'banking/persona/:personaId/:bankId',
+        name: 'banking-view',
+        component: BankingDetailView,
+        meta: { module: 'banking' },
+      },
+      {
+        path: 'banking/persona/:personaId/:bankId/editar',
+        name: 'banking-edit',
+        component: BankingFormView,
+        meta: { module: 'banking' },
       },
 
       // Provisiones routes (placeholder)

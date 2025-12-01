@@ -1,4 +1,5 @@
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 using WFNSystem.API.Models;
 using WFNSystem.API.Repository.Interfaces;
 
@@ -16,7 +17,18 @@ public class BankingRepository: IBankingRepository
     public async Task<IEnumerable<Banking>> GetByPersonaAsync(string personaId)
     {
         string pk = $"PERSONA#{personaId}";
-        var query = _context.QueryAsync<Banking>(pk);
+        
+        // Query filtra automáticamente por PK
+        // Usamos ScanCondition para filtrar el SK
+        var config = new DynamoDBOperationConfig
+        {
+            QueryFilter = new List<ScanCondition>
+            {
+                new ScanCondition("SK", ScanOperator.BeginsWith, "BANK#")
+            }
+        };
+        
+        var query = _context.QueryAsync<Banking>(pk, config);
         return await query.GetRemainingAsync();
     }
 

@@ -7,7 +7,6 @@ import {
   BuildingOfficeIcon,
   CurrencyDollarIcon,
   DocumentTextIcon,
-  BanknotesIcon,
   ChartBarIcon,
   Cog6ToothIcon,
   FolderIcon,
@@ -40,7 +39,7 @@ const menuItems: MenuItem[] = [
   },
   { name: 'Nóminas', route: '/nominas', icon: CurrencyDollarIcon, moduleName: 'nominas' },
   { name: 'Novedades', route: '/novedades', icon: DocumentTextIcon, moduleName: 'novedades' },
-  { name: 'Banking', route: '/banking', icon: BanknotesIcon, moduleName: 'banking' },
+  // Banking se accede desde Persona → Detalle → Cuentas Bancarias
   { name: 'Provisiones', route: '/provisiones', icon: ChartBarIcon, moduleName: 'provisiones' },
   { name: 'Parámetros', route: '/parametros', icon: Cog6ToothIcon, moduleName: 'parametros' },
   { name: 'Workspaces', route: '/workspaces', icon: CalendarIcon, moduleName: 'workspaces' },

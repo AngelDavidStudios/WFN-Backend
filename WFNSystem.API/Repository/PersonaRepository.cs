@@ -26,7 +26,8 @@ public class PersonaRepository: IPersonaRepository
     {
         var conditions = new List<ScanCondition>
         {
-            new ScanCondition("PK", ScanOperator.BeginsWith, "PERSONA#")
+            new ScanCondition("PK", ScanOperator.BeginsWith, "PERSONA#"),
+            new ScanCondition("SK", ScanOperator.Equal, SK) // Solo registros META#PERSONA
         };
 
         return await _context.ScanAsync<Persona>(conditions).GetRemainingAsync();

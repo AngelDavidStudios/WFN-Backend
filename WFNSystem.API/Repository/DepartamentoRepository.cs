@@ -26,7 +26,8 @@ public class DepartamentoRepository: IDepartamentoRepository
     {
         var conditions = new List<ScanCondition>
         {
-            new ScanCondition("PK", ScanOperator.BeginsWith, "DEP#")
+            new ScanCondition("PK", ScanOperator.BeginsWith, "DEP#"),
+            new ScanCondition("SK", ScanOperator.Equal, SK) // Solo registros META#DEP
         };
 
         return await _context.ScanAsync<Departamento>(conditions).GetRemainingAsync();

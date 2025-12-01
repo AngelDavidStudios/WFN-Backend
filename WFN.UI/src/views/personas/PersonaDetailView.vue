@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { PencilIcon, ArrowLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { PencilIcon, ArrowLeftIcon, TrashIcon, BanknotesIcon } from '@heroicons/vue/24/outline'
 import { api } from '@/api'
 import { useUIStore } from '@/stores'
 import type { Persona } from '@/types'
@@ -82,6 +82,10 @@ function goToEdit() {
   router.push(`/personas/${route.params.id}/editar`)
 }
 
+function goToBanking() {
+  router.push(`/banking/persona/${route.params.id}`)
+}
+
 function confirmDelete() {
   deleteModalOpen.value = true
 }
@@ -128,6 +132,10 @@ onMounted(() => {
         </div>
       </div>
       <div v-if="!loading" class="flex space-x-3">
+        <BaseButton variant="secondary" @click="goToBanking">
+          <BanknotesIcon class="h-5 w-5 mr-2" />
+          Cuentas Bancarias
+        </BaseButton>
         <BaseButton variant="outline" @click="goToEdit">
           <PencilIcon class="h-5 w-5 mr-2" />
           Editar
