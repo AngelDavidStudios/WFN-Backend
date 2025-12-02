@@ -44,12 +44,37 @@ function goToNew() {
 }
 
 function goToEdit(departamento: Departamento) {
-  router.push(`/departamentos/${departamento.id_Departamento}/editar`)
+  console.log('Editando departamento:', departamento)
+  const id = departamento.id_Departamento
+  if (!id) {
+    console.error('ID de departamento no encontrado:', departamento)
+    uiStore.notifyError('Error', 'No se pudo obtener el ID del departamento')
+    return
+  }
+  router.push(`/departamentos/${id}/editar`)
 }
 
 function confirmDelete(departamento: Departamento) {
+  console.log('Confirmando eliminación de departamento:', departamento)
+  const id = departamento.id_Departamento
+  if (!id) {
+    console.error('ID de departamento no encontrado:', departamento)
+    uiStore.notifyError('Error', 'No se pudo obtener el ID del departamento')
+    return
+  }
   departamentoToDelete.value = departamento
   deleteModalOpen.value = true
+}
+
+// Helper functions for table actions
+function handleEdit(row: Record<string, unknown>) {
+  const dept = row as unknown as Departamento
+  goToEdit(dept)
+}
+
+function handleDeleteClick(row: Record<string, unknown>) {
+  const dept = row as unknown as Departamento
+  confirmDelete(dept)
 }
 
 async function handleDelete() {
@@ -97,20 +122,20 @@ onMounted(() => {
       empty-text="No hay departamentos registrados"
     >
       <template #actions="{ row }">
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center justify-end space-x-3" @click.stop>
           <button
             type="button"
-            class="text-gray-400 hover:text-primary-600"
-            title="Editar"
-            @click.stop="goToEdit(row as unknown as Departamento)"
+            class="inline-flex items-center p-1.5 rounded-md text-gray-600 hover:text-white hover:bg-primary-600 transition-all duration-150"
+            title="Editar departamento"
+            @click="handleEdit(row)"
           >
             <PencilIcon class="h-5 w-5" />
           </button>
           <button
             type="button"
-            class="text-gray-400 hover:text-red-600"
-            title="Eliminar"
-            @click.stop="confirmDelete(row as unknown as Departamento)"
+            class="inline-flex items-center p-1.5 rounded-md text-gray-600 hover:text-white hover:bg-red-600 transition-all duration-150"
+            title="Eliminar departamento"
+            @click="handleDeleteClick(row)"
           >
             <TrashIcon class="h-5 w-5" />
           </button>
