@@ -228,11 +228,17 @@ const router = createRouter({
 })
 
 // Navigation guard
-router.beforeEach(async (to, _from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
-  // Check session if not already loaded
-  if (!authStore.user && !authStore.loading) {
+  // Only check session once, when the app first loads or when navigating from login
+  // Don't check on every navigation to avoid repeated API calls
+  const shouldCheckSession =
+    !authStore.user &&
+    !authStore.loading &&
+    (from.name === undefined || from.name === 'login')
+
+  if (shouldCheckSession) {
     await authStore.checkSession()
   }
 

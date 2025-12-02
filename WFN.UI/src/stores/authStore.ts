@@ -2,13 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/utils/supabase'
-import type {
-  UserProfile,
-  Role,
-  ModulePermission,
-  LoginCredentials,
-  ModuleName,
-} from '@/types'
+import type { UserProfile, Role, ModulePermission, LoginCredentials, ModuleName } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -19,6 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
   const permissions = ref<ModulePermission[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const connectionError = ref<string | null>(null)
 
   // Getters
   const isAuthenticated = computed(() => !!user.value)
@@ -71,6 +66,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(credentials: LoginCredentials): Promise<void> {
     loading.value = true
     error.value = null
+    connectionError.value = null
 
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -92,6 +88,9 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err) {
       if (err instanceof Error) {
         error.value = err.message
+        if (err.message.includes('fetch') || err.message.includes('network')) {
+          connectionError.value = 'Error de conexión. Verifique su internet.'
+        }
       } else {
         error.value = 'Error al iniciar sesión'
       }
@@ -115,18 +114,58 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function checkSession(): Promise<void> {
     loading.value = true
-    try {
-      const { data } = await supabase.auth.getSession()
+    connectionError.value = null
 
-      if (data.session) {
-        user.value = data.session.user
-        session.value = data.session
-        await loadUserData(data.session.user.id)
+    try {
+      // First, get the session from local storage (no API call)
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        if (import.meta.env.DEV) {
+          console.warn('Session storage error:', sessionError)
+        }
+        clearAuthState()
+        return
+      }
+
+      // If there's no session in storage, no need to continue
+      if (!sessionData.session) {
+        clearAuthState()
+        return
+      }
+
+      // If we have a session, validate it with the server
+      if (import.meta.env.DEV) {
+        console.log('🔐 Validating stored session...')
+      }
+      session.value = sessionData.session
+
+      // Validate the session by getting the user
+      const { data: userData, error: userError } = await supabase.auth.getUser()
+
+      if (userError) {
+        if (import.meta.env.DEV) {
+          console.warn('Session validation failed:', userError.message)
+        }
+        // Session is invalid, clear it
+        clearAuthState()
+        return
+      }
+
+      if (userData.user) {
+        if (import.meta.env.DEV) {
+          console.log('✅ Session valid for:', userData.user.email)
+        }
+        user.value = userData.user
+        await loadUserData(userData.user.id)
       } else {
         clearAuthState()
       }
     } catch (err) {
-      console.error('Error checking session:', err)
+      if (import.meta.env.DEV) {
+        console.error('Session check error:', err)
+      }
+      // On error, clear state
       clearAuthState()
     } finally {
       loading.value = false
@@ -204,16 +243,30 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
   }
 
-  // Listen to auth state changes
-  supabase.auth.onAuthStateChange(async (event, newSession) => {
-    if (event === 'SIGNED_IN' && newSession) {
-      user.value = newSession.user
-      session.value = newSession
-      await loadUserData(newSession.user.id)
-    } else if (event === 'SIGNED_OUT') {
-      clearAuthState()
-    }
-  })
+  // Setup auth state listener
+  function initAuthListener() {
+    supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (import.meta.env.DEV) {
+        console.log('🔄 Auth state:', event)
+      }
+
+      if (event === 'SIGNED_IN' && newSession) {
+        user.value = newSession.user
+        session.value = newSession
+        await loadUserData(newSession.user.id)
+      } else if (event === 'SIGNED_OUT') {
+        clearAuthState()
+      } else if (event === 'TOKEN_REFRESHED' && newSession) {
+        session.value = newSession
+        if (import.meta.env.DEV) {
+          console.log('🔄 Token refreshed')
+        }
+      }
+    })
+  }
+
+  // Initialize auth listener
+  initAuthListener()
 
   return {
     // State
@@ -224,6 +277,7 @@ export const useAuthStore = defineStore('auth', () => {
     permissions,
     loading,
     error,
+    connectionError,
     // Getters
     isAuthenticated,
     isSuperAdmin,
