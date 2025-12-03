@@ -36,10 +36,40 @@ const userForm = ref({
 })
 
 onMounted(async () => {
-  console.log('UserList mounted - fetching users and roles...')
-  await Promise.all([adminStore.fetchUsers(), adminStore.fetchRoles()])
-  console.log('Roles loaded:', adminStore.roles.length, adminStore.roles)
-  console.log('Users loaded:', adminStore.users.length)
+  console.log('🔄 UserList mounted - fetching users and roles...')
+  try {
+    await Promise.all([adminStore.fetchUsers(), adminStore.fetchRoles()])
+    console.log('✅ Roles loaded:', adminStore.roles.length, adminStore.roles)
+    console.log('✅ Users loaded:', adminStore.users.length)
+
+    if (adminStore.roles.length === 0) {
+      console.warn('⚠️ WARNING: No roles found. Please check:')
+      console.warn('   1. Do roles exist in Supabase? Run: SELECT * FROM roles;')
+      console.warn('   2. Are RLS policies configured correctly? Check for infinite recursion errors.')
+      console.warn('   3. Is the user authenticated? Check auth session.')
+      uiStore.notifyWarning(
+        'Sin roles disponibles',
+        'No se encontraron roles. Por favor, verifica las políticas RLS en Supabase o crea roles primero.'
+      )
+    }
+  } catch (error: any) {
+    console.error('❌ Error loading users or roles:', error)
+    uiStore.notifyError('Error', 'No se pudieron cargar los datos. Verifica las políticas RLS en Supabase.')
+  }
+})
+
+const availableRoles = computed(() => {
+  console.log('🔍 Computing available roles:', adminStore.roles.length, adminStore.roles)
+  return adminStore.roles
+})
+
+const roleOptions = computed(() => {
+  const options = adminStore.roles.map((role) => ({
+    label: `${role.display_name} (${role.name})`,
+    value: role.id,
+  }))
+  console.log('📋 Role options for dropdown:', options)
+  return options
 })
 
 const usersWithRoleName = computed(() => {
@@ -125,7 +155,7 @@ async function saveUser() {
     }
 
     showUserModal.value = false
-    await adminStore.fetchUsers()
+    // No necesitamos fetchUsers() aquí porque createUser() y updateUser() ya refrescan la lista
   } catch (error: any) {
     console.error('Error saving user:', error)
     const errorMessage = error.message || 'Error al guardar usuario'
@@ -136,13 +166,24 @@ async function saveUser() {
 async function deleteUser() {
   if (!selectedUser.value) return
 
+  const userEmail = selectedUser.value.email
+
   try {
     await adminStore.deleteUser(selectedUser.value.id)
     showDeleteModal.value = false
     selectedUser.value = null
 
-    uiStore.notifySuccess('Éxito', 'Usuario eliminado correctamente')
-    await adminStore.fetchUsers()
+    uiStore.notifySuccess('Éxito', 'Usuario eliminado de la base de datos')
+
+    // Notificación adicional recordando eliminar de Auth
+    setTimeout(() => {
+      uiStore.notifyWarning(
+        'Acción Pendiente',
+        `Recuerda: Debes eliminar manualmente "${userEmail}" de Supabase Dashboard → Authentication → Users`
+      )
+    }, 2000)
+
+    // No necesitamos fetchUsers() aquí porque deleteUser() ya actualiza el estado local
   } catch (error: any) {
     console.error('Error deleting user:', error)
     const errorMessage = error.message || 'No se pudo eliminar el usuario'
@@ -158,6 +199,56 @@ function formatDate(dateString: string) {
 
 <template>
   <div class="space-y-6">
+    <!-- Error Banner - RLS Issues -->
+    <div v-if="adminStore.error && adminStore.error.includes('recursión')" class="bg-red-50 border-l-4 border-red-400 p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            🔥 Error de Recursión Infinita Detectado
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <p class="mb-2">Las políticas RLS de la tabla <code class="bg-red-100 px-1 rounded font-mono">roles</code> están causando recursión infinita.</p>
+            <p class="font-semibold">Solución inmediata:</p>
+            <ol class="list-decimal list-inside space-y-1 mt-1 ml-2">
+              <li>Abre <a href="https://supabase.com/dashboard" target="_blank" class="underline font-semibold">Supabase Dashboard</a></li>
+              <li>Ve a <strong>SQL Editor</strong></li>
+              <li>Ejecuta el script: <code class="bg-red-100 px-1 rounded font-mono">SUPABASE_FIX_ROLES_RLS_INFINITE_RECURSION.sql</code></li>
+              <li>Recarga esta página</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Banner sobre Authentication -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-blue-700">
+            <strong>Nota importante:</strong> Al eliminar un usuario de esta lista, se elimina de la base de datos pero
+            <strong>debes eliminarlo manualmente</strong> de
+            <a
+              href="https://supabase.com/dashboard"
+              target="_blank"
+              class="underline hover:text-blue-900"
+            >
+              Supabase Dashboard → Authentication → Users
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Header Actions -->
     <div class="flex items-center justify-between">
       <div>
@@ -257,17 +348,15 @@ function formatDate(dateString: string) {
         <FormSelect
           v-model="userForm.role_id"
           label="Rol"
+          :options="roleOptions"
+          :placeholder="roleOptions.length > 0
+            ? `Seleccionar Rol (${roleOptions.length} disponibles)`
+            : '⚠️ No hay roles disponibles - Verifica RLS en Supabase'"
           required
-          help-text="Define los permisos que tendrá el usuario"
-        >
-          <option value="" disabled>Seleccionar Rol ({{ adminStore.roles.length }} disponibles)</option>
-          <option v-for="role in adminStore.roles" :key="role.id" :value="role.id">
-            {{ role.display_name }}
-          </option>
-        </FormSelect>
+        />
 
         <!-- Debug info -->
-        <div v-if="adminStore.roles.length === 0" class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+        <div v-if="roleOptions.length === 0" class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
           <div class="flex">
             <div class="flex-shrink-0">
               <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -276,8 +365,13 @@ function formatDate(dateString: string) {
             </div>
             <div class="ml-3">
               <p class="text-sm text-yellow-700">
-                <strong>No hay roles disponibles.</strong> Por favor, cree al menos un rol en la pestaña "Roles y Permisos" antes de crear usuarios.
+                <strong>No hay roles disponibles.</strong> Por favor:
               </p>
+              <ul class="mt-2 text-xs text-yellow-600 list-disc list-inside space-y-1">
+                <li>Verifica que existen roles en Supabase: <code class="bg-yellow-100 px-1 rounded">SELECT * FROM roles;</code></li>
+                <li>Verifica las políticas RLS en la tabla <code class="bg-yellow-100 px-1 rounded">roles</code></li>
+                <li>Crea al menos un rol en la pestaña "Roles y Permisos"</li>
+              </ul>
             </div>
           </div>
         </div>
