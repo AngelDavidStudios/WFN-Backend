@@ -29,7 +29,6 @@ const BankingFormView = () => import('@/views/banking/BankingFormView.vue')
 const NominaWorkspaceListView = () => import('@/views/nominas/NominaWorkspaceListView.vue')
 const NominaPeriodoListView = () => import('@/views/nominas/NominaPeriodoListView.vue')
 const NominaDetailView = () => import('@/views/nominas/NominaDetailView.vue')
-const NovedadListView = () => import('@/views/novedades/NovedadListView.vue')
 
 const routes: RouteRecordRaw[] = [
   // Public routes
@@ -197,12 +196,21 @@ const routes: RouteRecordRaw[] = [
         meta: { module: 'reportes', title: 'Reportes' },
       },
 
-      // Administración routes (placeholder)
+      // Administración routes
       {
         path: 'administracion',
         name: 'administracion',
-        component: () => import('@/views/PlaceholderView.vue'),
+        component: () => import('@/views/admin/AdminView.vue'),
         meta: { module: 'administracion', title: 'Administración', requiresSuperAdmin: true },
+      },
+      // Compatibility routes for existing modules
+      {
+        path: 'admin/usuarios',
+        redirect: '/administracion',
+      },
+      {
+        path: 'admin/roles',
+        redirect: '/administracion',
       },
     ],
   },
@@ -226,9 +234,7 @@ router.beforeEach(async (to, from, next) => {
   // Only check session once, when the app first loads or when navigating from login
   // Don't check on every navigation to avoid repeated API calls
   const shouldCheckSession =
-    !authStore.user &&
-    !authStore.loading &&
-    (from.name === undefined || from.name === 'login')
+    !authStore.user && !authStore.loading && (from.name === undefined || from.name === 'login')
 
   if (shouldCheckSession) {
     await authStore.checkSession()

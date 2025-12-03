@@ -3,9 +3,11 @@ import type { User, Session } from '@supabase/supabase-js'
 // Role types
 export interface Role {
   id: string
-  name: RoleName
+  name: string
+  display_name: string
   description: string
-  is_system_role: boolean
+  is_system_role?: boolean
+  created_at?: string
 }
 
 export type RoleName = 'SUPER_ADMIN' | 'ADMIN' | 'RRHH' | 'EMPLEADO'
@@ -20,6 +22,7 @@ export interface UserProfile {
   is_active: boolean
   created_at?: string
   updated_at?: string
+  roles?: Role // For joined queries
 }
 
 // Module permissions
@@ -44,6 +47,8 @@ export type ModuleName =
   | 'workspaces'
   | 'reportes'
   | 'administracion'
+  | 'roles'
+  | 'usuarios'
 
 export interface RoleModulePermission {
   role_id: string

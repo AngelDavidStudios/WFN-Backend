@@ -174,6 +174,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function loadUserData(userId: string): Promise<void> {
     try {
+      if (import.meta.env.DEV) {
+        console.log('📋 Loading user data for:', userId)
+      }
+
       // Load user profile
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
@@ -182,11 +186,15 @@ export const useAuthStore = defineStore('auth', () => {
         .single()
 
       if (profileError) {
-        console.error('Error loading profile:', profileError)
+        console.error('❌ Error loading profile:', profileError)
         return
       }
 
       userProfile.value = profile
+
+      if (import.meta.env.DEV) {
+        console.log('✅ Profile loaded:', profile.first_name, profile.last_name)
+      }
 
       // Load role
       if (profile.role_id) {
@@ -198,6 +206,12 @@ export const useAuthStore = defineStore('auth', () => {
 
         if (!roleError && role) {
           userRole.value = role
+
+          if (import.meta.env.DEV) {
+            console.log('✅ Role loaded:', role.name, role.display_name)
+          }
+        } else {
+          console.error('❌ Error loading role:', roleError)
         }
 
         // Load permissions
@@ -227,10 +241,17 @@ export const useAuthStore = defineStore('auth', () => {
             module_display_name: p.modules?.display_name || '',
             module_route: p.modules?.route || '',
           }))
+
+          if (import.meta.env.DEV) {
+            console.log('✅ Permissions loaded:', permissions.value.length, 'modules')
+            console.log('Accessible modules:', permissions.value.map(p => p.module_name))
+          }
+        } else {
+          console.error('❌ Error loading permissions:', permsError)
         }
       }
     } catch (err) {
-      console.error('Error loading user data:', err)
+      console.error('❌ Error loading user data:', err)
     }
   }
 

@@ -6,7 +6,6 @@ import {
   UsersIcon,
   BuildingOfficeIcon,
   CurrencyDollarIcon,
-  ChartBarIcon,
   Cog6ToothIcon,
   FolderIcon,
   DocumentChartBarIcon,
@@ -51,7 +50,24 @@ const filteredMenuItems = computed(() => {
   return menuItems.filter((item) => authStore.canAccessModule(item.moduleName))
 })
 
-const showAdminMenu = computed(() => authStore.isSuperAdmin)
+// SUPER_ADMIN always has access to admin menu
+// Also check if user has explicit permission for administracion module
+const showAdminMenu = computed(() => {
+  const isSuperAdmin = authStore.isSuperAdmin
+  const hasAdminPermission = authStore.canAccessModule('administracion')
+
+  // Debug logging
+  if (import.meta.env.DEV) {
+    console.log('🔐 Admin Menu Check:', {
+      isSuperAdmin,
+      hasAdminPermission,
+      userRole: authStore.userRole?.name,
+      showMenu: isSuperAdmin || hasAdminPermission
+    })
+  }
+
+  return isSuperAdmin || hasAdminPermission
+})
 
 const isActive = (itemRoute: string): boolean => {
   return route.path.startsWith(itemRoute)
