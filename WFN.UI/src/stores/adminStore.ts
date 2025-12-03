@@ -200,6 +200,7 @@ export const useAdminStore = defineStore('admin', () => {
         email: userData.email,
         password: userData.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
           data: {
             first_name: userData.first_name,
             last_name: userData.last_name,

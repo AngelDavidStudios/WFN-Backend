@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores'
 // Lazy load components
 const MainLayout = () => import('@/components/layout/MainLayout.vue')
 const LoginView = () => import('@/views/auth/LoginView.vue')
+const EmailConfirmationView = () => import('@/views/auth/EmailConfirmationView.vue')
 const DashboardView = () => import('@/views/dashboard/DashboardView.vue')
 
 // Personas
@@ -36,6 +37,12 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     component: LoginView,
+    meta: { public: true },
+  },
+  {
+    path: '/auth/confirm',
+    name: 'email-confirmation',
+    component: EmailConfirmationView,
     meta: { public: true },
   },
 
