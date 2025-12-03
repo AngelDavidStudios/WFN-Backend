@@ -13,7 +13,7 @@ onMounted(async () => {
   const timeout = setTimeout(() => {
     console.warn('Router initialization timed out, forcing ready state')
     isReady.value = true
-  }, 7000)
+  }, 4000) // Reducido a 4 segundos
 
   try {
     await router.isReady()

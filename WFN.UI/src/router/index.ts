@@ -237,7 +237,20 @@ router.beforeEach(async (to, from, next) => {
     !authStore.user && !authStore.loading && (from.name === undefined || from.name === 'login')
 
   if (shouldCheckSession) {
-    await authStore.checkSession()
+    try {
+      // Agregar timeout corto para no bloquear el router
+      const checkTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Session check timeout')), 4000)
+      })
+
+      await Promise.race([
+        authStore.checkSession(),
+        checkTimeout
+      ])
+    } catch (err: any) {
+      console.warn('⚠️ Session check timed out or failed in router guard:', err.message)
+      // Continuar con la navegación de todas formas
+    }
   }
 
   const isPublicRoute = to.meta.public === true
