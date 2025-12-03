@@ -9,15 +9,21 @@ public class NovedadService: INovedadService
     private readonly INovedadRepository _repo;
     private readonly IEmpleadoRepository _empleadoRepo;
     private readonly IParametroRepository _parametroRepo;
+    private readonly INominaService _nominaService;
+    private readonly ILogger<NovedadService> _logger;
 
     public NovedadService(
         INovedadRepository repo, 
         IEmpleadoRepository empleadoRepo,
-        IParametroRepository parametroRepo)
+        IParametroRepository parametroRepo,
+        INominaService nominaService,
+        ILogger<NovedadService> logger)
     {
         _repo = repo;
         _empleadoRepo = empleadoRepo;
         _parametroRepo = parametroRepo;
+        _nominaService = nominaService;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<Novedad>> GetByEmpleadoAsync(string empleadoId)
@@ -71,6 +77,21 @@ public class NovedadService: INovedadService
         novedad.TipoNovedad = novedad.TipoNovedad.Trim().ToUpper();
 
         await _repo.AddAsync(novedad);
+
+        // ============================================================
+        // RECALCULAR NÓMINA AUTOMÁTICAMENTE
+        // ============================================================
+        try
+        {
+            _logger.LogInformation($"Recalculando nómina para empleado {empleadoId}, periodo {novedad.Periodo} después de crear novedad");
+            await _nominaService.RecalcularNominaAsync(empleadoId, novedad.Periodo);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, $"No se pudo recalcular la nómina automáticamente. La novedad fue creada pero la nómina debe recalcularse manualmente.");
+            // No lanzamos excepción para no fallar la creación de la novedad
+        }
+
         return novedad;
     }
 
@@ -112,6 +133,21 @@ public class NovedadService: INovedadService
         novedad.FechaIngresada = exists.FechaIngresada;
 
         await _repo.UpdateAsync(novedad);
+
+        // ============================================================
+        // RECALCULAR NÓMINA AUTOMÁTICAMENTE
+        // ============================================================
+        try
+        {
+            _logger.LogInformation($"Recalculando nómina para empleado {empleadoId}, periodo {novedad.Periodo} después de actualizar novedad");
+            await _nominaService.RecalcularNominaAsync(empleadoId, novedad.Periodo);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, $"No se pudo recalcular la nómina automáticamente. La novedad fue actualizada pero la nómina debe recalcularse manualmente.");
+            // No lanzamos excepción para no fallar la actualización de la novedad
+        }
+
         return novedad;
     }
 
@@ -122,6 +158,21 @@ public class NovedadService: INovedadService
             return false;
 
         await _repo.DeleteAsync(empleadoId, periodo, novedadId);
+
+        // ============================================================
+        // RECALCULAR NÓMINA AUTOMÁTICAMENTE
+        // ============================================================
+        try
+        {
+            _logger.LogInformation($"Recalculando nómina para empleado {empleadoId}, periodo {periodo} después de eliminar novedad");
+            await _nominaService.RecalcularNominaAsync(empleadoId, periodo);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, $"No se pudo recalcular la nómina automáticamente. La novedad fue eliminada pero la nómina debe recalcularse manualmente.");
+            // No lanzamos excepción para no fallar la eliminación de la novedad
+        }
+
         return true;
     }
 

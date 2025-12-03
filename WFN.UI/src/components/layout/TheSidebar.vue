@@ -36,8 +36,6 @@ const menuItems: MenuItem[] = [
     moduleName: 'departamentos',
   },
   { name: 'Nóminas', route: '/nominas', icon: CurrencyDollarIcon, moduleName: 'nominas' },
-  // Novedades y Workspaces se acceden desde Nóminas
-  { name: 'Provisiones', route: '/provisiones', icon: ChartBarIcon, moduleName: 'provisiones' },
   { name: 'Parámetros', route: '/parametros', icon: Cog6ToothIcon, moduleName: 'parametros' },
   { name: 'Reportes', route: '/reportes', icon: DocumentChartBarIcon, moduleName: 'reportes' },
 ]

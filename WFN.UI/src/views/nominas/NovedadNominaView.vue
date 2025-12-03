@@ -39,7 +39,7 @@ const isEditing = ref(false)
 const saving = ref(false)
 const novedadForm = ref({
   id_Parametro: '',
-  tipoNovedad: 'INGRESO' as 'INGRESO' | 'EGRESO' | 'PROVISION',
+  tipoNovedad: 'INGRESO' as 'INGRESO' | 'EGRESO',
   descripcion: '',
   montoAplicado: 0,
   cantidadHoras: 0,
@@ -64,10 +64,25 @@ const columns = [
 const ingresos = computed(() => novedades.value.filter(n => n.tipoNovedad === 'INGRESO'))
 const egresos = computed(() => novedades.value.filter(n => n.tipoNovedad === 'EGRESO'))
 
+// Parámetros que se calculan automáticamente y no deben agregarse manualmente
+const PARAMETROS_AUTOMATICOS = [
+  'DECIMO_TERCERO_MENSUAL',
+  'DECIMO_CUARTO_MENSUAL',
+  'FONDOS_RESERVA_MENSUAL',
+  // También las provisiones acumuladas no se agregan como novedades
+  'PROVISION_DECIMO_TERCERO',
+  'PROVISION_DECIMO_CUARTO',
+  'PROVISION_FONDOS_RESERVA',
+  'PROVISION_VACACIONES',
+  'IESS_PATRONAL',
+]
+
 const parametrosDisponibles = computed(() => {
   if (novedadForm.value.tipoNovedad === 'INGRESO') {
     return parametros.value
       .filter(p => p.tipo === 'INGRESO')
+      // Filtrar parámetros que se calculan automáticamente
+      .filter(p => !PARAMETROS_AUTOMATICOS.includes(p.tipoCalculo || ''))
       .map(p => ({ value: p.id_Parametro, label: `${p.nombre}` }))
   } else if (novedadForm.value.tipoNovedad === 'EGRESO') {
     return parametros.value
@@ -197,13 +212,19 @@ async function handleSave() {
         editingNovedadId.value,
         { ...novedadData, id_Novedad: editingNovedadId.value }
       )
-      uiStore.notifySuccess('Éxito', 'Novedad actualizada correctamente')
+      uiStore.notifySuccess('Éxito', 'Novedad actualizada correctamente. Recalculando nómina...')
     } else {
       await api.novedad.create(empleadoId.value, novedadData)
-      uiStore.notifySuccess('Éxito', 'Novedad creada correctamente. La nómina se recalculará automáticamente.')
+      uiStore.notifySuccess('Éxito', 'Novedad creada correctamente. Recalculando nómina...')
     }
 
     formModalOpen.value = false
+
+    // Marcar que se actualizó la nómina para que se recargue en la vista de detalle
+    localStorage.setItem(`nomina-updated-${empleadoId.value}-${periodo.value}`, Date.now().toString())
+
+    // Esperar un momento para que el backend termine de recalcular la nómina
+    await new Promise(resolve => setTimeout(resolve, 500))
     await loadNovedades()
   } catch (error: any) {
     console.error('Error saving novedad:', error)
@@ -229,8 +250,14 @@ async function handleDelete() {
       periodo.value,
       novedadToDelete.value.id_Novedad
     )
-    uiStore.notifySuccess('Éxito', 'Novedad eliminada correctamente. La nómina se recalculará automáticamente.')
+    uiStore.notifySuccess('Éxito', 'Novedad eliminada correctamente. Recalculando nómina...')
     deleteModalOpen.value = false
+
+    // Marcar que se actualizó la nómina para que se recargue en la vista de detalle
+    localStorage.setItem(`nomina-updated-${empleadoId.value}-${periodo.value}`, Date.now().toString())
+
+    // Esperar un momento para que el backend termine de recalcular la nómina
+    await new Promise(resolve => setTimeout(resolve, 500))
     await loadNovedades()
   } catch (error: any) {
     console.error('Error deleting novedad:', error)

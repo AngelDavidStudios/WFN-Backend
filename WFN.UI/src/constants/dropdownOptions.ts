@@ -23,11 +23,10 @@ export const GENDER_OPTIONS: DropdownOption<string>[] = [
   { value: 'O', label: 'Otro' },
 ]
 
-// Tipo novedad options
+// Tipo novedad options (solo INGRESO y EGRESO - las provisiones son automáticas)
 export const TIPO_NOVEDAD_OPTIONS: DropdownOption<TipoNovedad>[] = [
   { value: 'INGRESO', label: 'Ingreso' },
   { value: 'EGRESO', label: 'Egreso' },
-  { value: 'PROVISION', label: 'Provisión' },
 ]
 
 // Tipo parametro options

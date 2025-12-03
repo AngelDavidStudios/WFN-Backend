@@ -63,7 +63,7 @@ async function handleCreate() {
 
   creating.value = true
   try {
-    await api.workspace.create(nuevoPeriodo.value)
+    await api.workspace.crearPeriodo(nuevoPeriodo.value)
     uiStore.notifySuccess('Éxito', `Período ${nuevoPeriodo.value} creado correctamente`)
     createModalOpen.value = false
     await loadWorkspaces()

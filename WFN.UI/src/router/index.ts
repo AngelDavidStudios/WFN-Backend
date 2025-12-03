@@ -180,14 +180,6 @@ const routes: RouteRecordRaw[] = [
         meta: { module: 'banking' },
       },
 
-      // Provisiones routes (placeholder)
-      {
-        path: 'provisiones',
-        name: 'provisiones',
-        component: () => import('@/views/PlaceholderView.vue'),
-        meta: { module: 'provisiones', title: 'Provisiones' },
-      },
-
       // Parámetros routes
       {
         path: 'parametros',

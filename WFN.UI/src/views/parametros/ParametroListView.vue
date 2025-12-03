@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { api } from '@/api'
 import { useUIStore } from '@/stores'
@@ -17,6 +17,11 @@ const uiStore = useUIStore()
 
 const loading = ref(true)
 const parametros = ref<Parametro[]>([])
+
+// Computed property para filtrar parámetros (excluir provisiones automáticas)
+const parametrosFiltrados = computed(() => {
+  return parametros.value.filter(p => p.tipo !== 'PROVISION')
+})
 
 // Form modal
 const formModalOpen = ref(false)
@@ -147,6 +152,22 @@ onMounted(() => {
       </BaseButton>
     </div>
 
+    <!-- Info Banner -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-blue-700">
+            <strong>Nota:</strong> Los parámetros de tipo PROVISIÓN no se muestran aquí porque son calculados automáticamente por el sistema (Décimo Tercero, Décimo Cuarto, Fondos de Reserva, Vacaciones, IESS Patronal).
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-12">
       <LoadingSpinner size="lg" />
@@ -156,7 +177,7 @@ onMounted(() => {
     <DataTable
       v-else
       :columns="columns"
-      :data="parametros as unknown as Record<string, unknown>[]"
+      :data="parametrosFiltrados as unknown as Record<string, unknown>[]"
       empty-text="No hay parámetros registrados"
     >
       <template #cell-tipo="{ value }">

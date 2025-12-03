@@ -5,6 +5,7 @@ import {
   ArrowLeftIcon,
   PlusIcon,
   EyeIcon,
+  TrashIcon,
   DocumentTextIcon,
   CheckCircleIcon,
   XCircleIcon,
@@ -33,6 +34,11 @@ const empleadosActivos = computed(() => empleados.value.filter((e) => e.statusLa
 const generateModalOpen = ref(false)
 const selectedEmpleado = ref<string>('')
 const generating = ref(false)
+
+// Delete modal
+const deleteModalOpen = ref(false)
+const nominaToDelete = ref<Nomina | null>(null)
+const deleting = ref(false)
 
 const columns = [
   { key: 'empleadoNombre', label: 'Empleado' },
@@ -170,6 +176,37 @@ async function handleGenerate() {
 function goToDetail(row: Record<string, unknown>) {
   const nomina = row as unknown as Nomina
   router.push(`/nominas/periodo/${periodo.value}/empleado/${nomina.id_Empleado}`)
+}
+
+function confirmDelete(row: Record<string, unknown>) {
+  nominaToDelete.value = row as unknown as Nomina
+  deleteModalOpen.value = true
+}
+
+async function handleDelete() {
+  if (!nominaToDelete.value) return
+
+  deleting.value = true
+  try {
+    await api.nomina.delete(nominaToDelete.value.id_Empleado, periodo.value)
+
+    uiStore.notifySuccess(
+      'Éxito',
+      `Nómina de ${getEmpleadoNombre(nominaToDelete.value.id_Empleado)} eliminada correctamente. Puede volver a generarla cuando lo necesite.`
+    )
+
+    deleteModalOpen.value = false
+    nominaToDelete.value = null
+
+    // Recargar la lista
+    await loadNominas()
+  } catch (error: any) {
+    console.error('Error deleting nomina:', error)
+    const errorMessage = error.response?.data?.message || 'No se pudo eliminar la nómina'
+    uiStore.notifyError('Error', errorMessage)
+  } finally {
+    deleting.value = false
+  }
 }
 
 function formatPeriodo(p: string) {
@@ -345,14 +382,25 @@ onMounted(async () => {
       @row-click="goToDetail"
     >
       <template #actions="{ row }">
-        <button
-          type="button"
-          class="text-gray-400 hover:text-blue-600"
-          title="Ver detalle"
-          @click.stop="goToDetail(row)"
-        >
-          <EyeIcon class="h-5 w-5" />
-        </button>
+        <div class="flex items-center space-x-2">
+          <button
+            type="button"
+            class="text-gray-400 hover:text-blue-600"
+            title="Ver detalle"
+            @click.stop="goToDetail(row)"
+          >
+            <EyeIcon class="h-5 w-5" />
+          </button>
+          <button
+            v-if="workspace?.estado === 0"
+            type="button"
+            class="text-gray-400 hover:text-red-600"
+            title="Eliminar nómina"
+            @click.stop="confirmDelete(row)"
+          >
+            <TrashIcon class="h-5 w-5" />
+          </button>
+        </div>
       </template>
     </DataTable>
 
@@ -377,7 +425,7 @@ onMounted(async () => {
               :key="empleado.id_Empleado"
               :value="empleado.id_Empleado"
             >
-              {{ empleado.primerNombre }} {{ empleado.segundoNombre ? empleado.segundoNombre + ' ' : '' }}{{ empleado.apellidoPaterno }} {{ empleado.apellidoMaterno }} ({{ empleado.id_Empleado }})
+              {{ getEmpleadoNombre(empleado.id_Empleado) }}
             </option>
           </select>
         </div>
@@ -396,6 +444,63 @@ onMounted(async () => {
         </BaseButton>
         <BaseButton variant="primary" :loading="generating" :disabled="generating" @click="handleGenerate">
           Generar Nómina
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Delete Confirmation Modal -->
+    <BaseModal
+      :open="deleteModalOpen"
+      title="Eliminar Nómina"
+      @close="deleteModalOpen = false"
+    >
+      <div class="space-y-4">
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-yellow-800">¿Está seguro de eliminar esta nómina?</h3>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="nominaToDelete" class="space-y-2">
+          <p class="text-sm text-gray-700">
+            <strong>Empleado:</strong> {{ getEmpleadoNombre(nominaToDelete.id_Empleado) }}
+          </p>
+          <p class="text-sm text-gray-700">
+            <strong>Período:</strong> {{ formatPeriodo(periodo) }}
+          </p>
+          <p class="text-sm text-gray-700">
+            <strong>Neto a Pagar:</strong> {{ nominaToDelete.netoAPagar }}
+          </p>
+        </div>
+
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p class="text-sm text-red-800">
+            <strong>Advertencia:</strong> Esta acción eliminará:
+          </p>
+          <ul class="mt-2 text-sm text-red-700 list-disc list-inside space-y-1">
+            <li>La nómina completa del empleado para este período</li>
+            <li>Todos los ingresos y egresos asociados (novedades)</li>
+            <li>Todas las provisiones calculadas</li>
+          </ul>
+          <p class="mt-3 text-sm text-red-800">
+            <strong>Nota:</strong> Podrá volver a generar la nómina posteriormente si lo necesita.
+          </p>
+        </div>
+      </div>
+
+      <template #footer>
+        <BaseButton variant="outline" @click="deleteModalOpen = false" :disabled="deleting">
+          Cancelar
+        </BaseButton>
+        <BaseButton variant="danger" :loading="deleting" :disabled="deleting" @click="handleDelete">
+          Sí, Eliminar Nómina
         </BaseButton>
       </template>
     </BaseModal>
