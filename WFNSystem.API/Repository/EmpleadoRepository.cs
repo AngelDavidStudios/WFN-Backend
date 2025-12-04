@@ -26,7 +26,8 @@ public class EmpleadoRepository: IEmpleadoRepository
     {
         var conditions = new List<ScanCondition>
         {
-            new ScanCondition("PK", ScanOperator.BeginsWith, "EMP#")
+            new ScanCondition("PK", ScanOperator.BeginsWith, "EMP#"),
+            new ScanCondition("SK", ScanOperator.Equal, SK) // Solo registros META#EMP
         };
 
         return await _context.ScanAsync<Empleado>(conditions).GetRemainingAsync();

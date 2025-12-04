@@ -17,4 +17,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    // Configuración para soportar HTML5 History Mode
+    // Esto asegura que todas las rutas devuelvan index.html
+    historyApiFallback: true,
+  },
 })

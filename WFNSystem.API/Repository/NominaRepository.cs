@@ -17,7 +17,7 @@ public class NominaRepository: INominaRepository
     public async Task<Nomina?> GetByPeriodoAsync(string empleadoId, string periodo)
     {
         string pk = $"EMP#{empleadoId}";
-        string sk = $"NOMINA#{periodo}";
+        string sk = $"NOM#{periodo}";
 
         return await _context.LoadAsync<Nomina>(pk, sk);
     }
@@ -26,13 +26,21 @@ public class NominaRepository: INominaRepository
     {
         string pk = $"EMP#{empleadoId}";
 
-        var query = _context.QueryAsync<Nomina>(pk);
+        var config = new DynamoDBOperationConfig
+        {
+            QueryFilter = new List<ScanCondition>
+            {
+                new ScanCondition("SK", ScanOperator.BeginsWith, "NOM#")
+            }
+        };
+
+        var query = _context.QueryAsync<Nomina>(pk, config);
         return await query.GetRemainingAsync();
     }
     
     public async Task<IEnumerable<Nomina>> GetByPeriodoGlobalAsync(string periodo)
     {
-        string skPrefix = $"NOMINA#{periodo}";
+        string skPrefix = $"NOM#{periodo}";
 
         var conditions = new List<ScanCondition>
         {
@@ -55,7 +63,7 @@ public class NominaRepository: INominaRepository
     public async Task DeleteAsync(string empleadoId, string periodo)
     {
         string pk = $"EMP#{empleadoId}";
-        string sk = $"NOMINA#{periodo}";
+        string sk = $"NOM#{periodo}";
 
         await _context.DeleteAsync<Nomina>(pk, sk);
     }

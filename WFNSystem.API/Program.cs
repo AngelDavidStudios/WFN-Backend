@@ -8,7 +8,14 @@ builder.AddServiceDefaults();
 // --- Servicios base ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Configurar camelCase para las propiedades JSON
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        // Mantener los nombres de propiedades de diccionarios como están
+        options.JsonSerializerOptions.DictionaryKeyPolicy = null;
+    });
 
 // --- CORS global ---
 builder.Services.AddCors(options =>

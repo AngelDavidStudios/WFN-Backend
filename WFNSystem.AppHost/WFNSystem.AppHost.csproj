@@ -12,4 +12,8 @@
       <ProjectReference Include="..\WFNSystem.API\WFNSystem.API.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.0.1" />
+    </ItemGroup>
+
 </Project>

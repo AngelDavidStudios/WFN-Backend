@@ -70,27 +70,67 @@ public class NominaService : INominaService
         if (exists == null)
             return false;
 
+        _logger.LogInformation($"Eliminando nómina y datos relacionados para empleado {empleadoId}, periodo {periodo}");
+
+        // 1. Eliminar todas las novedades del período
+        try
+        {
+            var novedades = await _novedadRepo.GetByPeriodoAsync(empleadoId, periodo);
+            foreach (var novedad in novedades)
+            {
+                await _novedadRepo.DeleteAsync(empleadoId, periodo, novedad.ID_Novedad);
+                _logger.LogInformation($"Novedad {novedad.ID_Novedad} eliminada");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error al eliminar novedades, continuando con la eliminación");
+        }
+
+        // 2. Eliminar todas las provisiones del período
+        try
+        {
+            var provisiones = await _provisionRepo.GetByPeriodoAsync(empleadoId, periodo);
+            foreach (var provision in provisiones)
+            {
+                await _provisionRepo.DeleteAsync(empleadoId, provision.TipoProvision, periodo);
+                _logger.LogInformation($"Provisión {provision.TipoProvision} eliminada");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error al eliminar provisiones, continuando con la eliminación");
+        }
+
+        // 3. Eliminar la nómina
         await _nominaRepo.DeleteAsync(empleadoId, periodo);
+        _logger.LogInformation($"Nómina eliminada completamente para empleado {empleadoId}, periodo {periodo}");
+        
         return true;
     }
 
     public async Task<Nomina> GenerarNominaAsync(string empleadoId, string periodo)
     {
-        // ========== 1. Validar periodo abierto ==========
+        // ========== 1. Verificar si ya existe nómina ==========
+        var nominaExistente = await _nominaRepo.GetByPeriodoAsync(empleadoId, periodo);
+        if (nominaExistente != null)
+            throw new ArgumentException($"Ya existe una nómina para el empleado {empleadoId} en el periodo {periodo}. Use recalcular para actualizar.");
+
+        // ========== 2. Validar periodo abierto ==========
         var workspace = await _workspaceService.GetByPeriodoAsync(periodo);
         if (workspace == null || workspace.Estado != 0)
             throw new Exception($"El periodo {periodo} no está abierto.");
 
-        // ========== 2. Cargar empleado ==========
+        // ========== 3. Cargar empleado ==========
         var empleado = await _empleadoRepo.GetByIdAsync(empleadoId);
         if (empleado == null)
             throw new Exception("El empleado no existe.");
 
-        // ========== 3. Cargar novedades y parámetros ==========
+        // ========== 4. Cargar novedades y parámetros ==========
         var novedades = (await _novedadRepo.GetByPeriodoAsync(empleadoId, periodo)).ToList();
         var parametros = (await _parametroRepo.GetAllAsync()).ToDictionary(p => p.ID_Parametro);
 
-        // ========== 4. Crear nómina base ==========
+        // ========== 5. Crear nómina base ==========
         var nomina = new Nomina
         {
             PK = $"EMP#{empleadoId}",
@@ -102,19 +142,19 @@ public class NominaService : INominaService
             IsCerrada = false
         };
 
-        // ========== 5. Calcular ingresos ==========
+        // ========== 6. Calcular ingresos ==========
         await CalcularIngresosAsync(nomina, empleado, novedades, parametros);
 
-        // ========== 6. Calcular egresos ==========
+        // ========== 7. Calcular egresos ==========
         await CalcularEgresosAsync(nomina, empleado, novedades, parametros);
 
-        // ========== 7. Procesar provisiones ==========
+        // ========== 8. Procesar provisiones ==========
         await CalcularProvisionesAsync(nomina, empleado);
 
-        // ========== 8. Calcular neto a pagar ==========
+        // ========== 9. Calcular neto a pagar ==========
         CalcularNetoAPagar(nomina);
 
-        // ========== 9. Guardar la nómina ==========
+        // ========== 10. Guardar la nómina ==========
         await _nominaRepo.AddAsync(nomina);
 
         return nomina;
@@ -264,45 +304,70 @@ public class NominaService : INominaService
         List<Novedad> novedades,
         Dictionary<string, Parametro> parametros)
     {
+        _logger.LogInformation($"=== INICIANDO CÁLCULO DE EGRESOS ===");
+        _logger.LogInformation($"Total de novedades: {novedades.Count}");
+        _logger.LogInformation($"Novedades EGRESO: {novedades.Count(n => n.TipoNovedad == "EGRESO")}");
+        
         decimal totalEgresos = 0;
         decimal aporteIESS_Personal = 0;
         decimal impuestoRenta = 0;
 
-        foreach (var novedad in novedades.Where(n => n.TipoNovedad == "EGRESO"))
+        var egresosNovedades = novedades.Where(n => n.TipoNovedad == "EGRESO").ToList();
+        _logger.LogInformation($"Procesando {egresosNovedades.Count} egresos...");
+
+        foreach (var novedad in egresosNovedades)
         {
+            _logger.LogInformation($"Procesando egreso: ID={novedad.ID_Novedad}, Parámetro={novedad.ID_Parametro}, Monto={novedad.MontoAplicado}");
+            
             if (!parametros.TryGetValue(novedad.ID_Parametro, out var parametro))
             {
-                _logger.LogWarning($"Parámetro {novedad.ID_Parametro} no encontrado para la novedad {novedad.ID_Novedad}");
+                _logger.LogWarning($"⚠️ Parámetro {novedad.ID_Parametro} no encontrado para la novedad {novedad.ID_Novedad}");
                 continue;
             }
 
-            var strategy = _strategyFactory.GetEgresoStrategy(parametro.Tipo);
-            var monto = strategy.Calcular(
-                novedad,
-                empleado,
-                empleado.SalarioBase,
-                nomina.TotalIngresosGravados,
-                new Dictionary<string, decimal>()
-            );
+            _logger.LogInformation($"Parámetro encontrado: Tipo={parametro.Tipo}, TipoCalculo={parametro.TipoCalculo}");
 
-            totalEgresos += monto;
-
-            // ↳ Reglas especiales del modelo
-            switch (parametro.Tipo)
+            try
             {
-                case "IESS_PERSONAL":
-                    aporteIESS_Personal = monto;
-                    break;
+                var strategy = _strategyFactory.GetEgresoStrategy(parametro.TipoCalculo);
+                var monto = strategy.Calcular(
+                    novedad,
+                    empleado,
+                    empleado.SalarioBase,
+                    nomina.TotalIngresosGravados,
+                    new Dictionary<string, decimal>()
+                );
 
-                case "IMPUESTO_RENTA":
-                    impuestoRenta = monto;
-                    break;
+                _logger.LogInformation($"✅ Egreso calculado: {monto:F2}");
+                totalEgresos += monto;
+
+                // ↳ Reglas especiales del modelo
+                switch (parametro.TipoCalculo)
+                {
+                    case "IESS_PERSONAL":
+                        aporteIESS_Personal = monto;
+                        _logger.LogInformation($"IESS Personal: {monto:F2}");
+                        break;
+
+                    case "IMPUESTO_RENTA":
+                        impuestoRenta = monto;
+                        _logger.LogInformation($"Impuesto Renta: {monto:F2}");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"❌ Error al calcular egreso {novedad.ID_Novedad}");
             }
         }
 
         nomina.TotalEgresos = totalEgresos;
         nomina.IESS_AportePersonal = aporteIESS_Personal;
         nomina.IR_Retenido = impuestoRenta;
+        
+        _logger.LogInformation($"=== TOTAL EGRESOS: {totalEgresos:F2} ===");
+        _logger.LogInformation($"IESS Personal: {aporteIESS_Personal:F2}");
+        _logger.LogInformation($"Impuesto Renta: {impuestoRenta:F2}");
     }
     
     private async Task CalcularProvisionesAsync(Nomina nomina, Empleado empleado)
