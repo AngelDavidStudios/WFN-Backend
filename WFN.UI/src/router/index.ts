@@ -205,12 +205,21 @@ const routes: RouteRecordRaw[] = [
         meta: { module: 'reportes', title: 'Reportes' },
       },
 
-      // Administración routes (placeholder)
+      // Administración routes
       {
         path: 'administracion',
         name: 'administracion',
-        component: () => import('@/views/PlaceholderView.vue'),
+        component: () => import('@/views/admin/AdminView.vue'),
         meta: { module: 'administracion', title: 'Administración', requiresSuperAdmin: true },
+      },
+      // Compatibility routes for existing modules
+      {
+        path: 'admin/usuarios',
+        redirect: '/administracion',
+      },
+      {
+        path: 'admin/roles',
+        redirect: '/administracion',
       },
     ],
   },
