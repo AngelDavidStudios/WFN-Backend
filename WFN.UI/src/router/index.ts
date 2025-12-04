@@ -5,7 +5,6 @@ import { useAuthStore } from '@/stores'
 // Lazy load components
 const MainLayout = () => import('@/components/layout/MainLayout.vue')
 const LoginView = () => import('@/views/auth/LoginView.vue')
-const EmailConfirmationView = () => import('@/views/auth/EmailConfirmationView.vue')
 const DashboardView = () => import('@/views/dashboard/DashboardView.vue')
 
 // Personas
@@ -30,6 +29,7 @@ const BankingFormView = () => import('@/views/banking/BankingFormView.vue')
 const NominaWorkspaceListView = () => import('@/views/nominas/NominaWorkspaceListView.vue')
 const NominaPeriodoListView = () => import('@/views/nominas/NominaPeriodoListView.vue')
 const NominaDetailView = () => import('@/views/nominas/NominaDetailView.vue')
+const NovedadListView = () => import('@/views/novedades/NovedadListView.vue')
 
 const routes: RouteRecordRaw[] = [
   // Public routes
@@ -37,12 +37,6 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     component: LoginView,
-    meta: { public: true },
-  },
-  {
-    path: '/auth/confirm',
-    name: 'email-confirmation',
-    component: EmailConfirmationView,
     meta: { public: true },
   },
 
@@ -186,6 +180,14 @@ const routes: RouteRecordRaw[] = [
         meta: { module: 'banking' },
       },
 
+      // Provisiones routes (placeholder)
+      {
+        path: 'provisiones',
+        name: 'provisiones',
+        component: () => import('@/views/PlaceholderView.vue'),
+        meta: { module: 'provisiones', title: 'Provisiones' },
+      },
+
       // Parámetros routes
       {
         path: 'parametros',
@@ -203,21 +205,12 @@ const routes: RouteRecordRaw[] = [
         meta: { module: 'reportes', title: 'Reportes' },
       },
 
-      // Administración routes
+      // Administración routes (placeholder)
       {
         path: 'administracion',
         name: 'administracion',
-        component: () => import('@/views/admin/AdminView.vue'),
+        component: () => import('@/views/PlaceholderView.vue'),
         meta: { module: 'administracion', title: 'Administración', requiresSuperAdmin: true },
-      },
-      // Compatibility routes for existing modules
-      {
-        path: 'admin/usuarios',
-        redirect: '/administracion',
-      },
-      {
-        path: 'admin/roles',
-        redirect: '/administracion',
       },
     ],
   },
@@ -235,29 +228,12 @@ const router = createRouter({
 })
 
 // Navigation guard
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  // Only check session once, when the app first loads or when navigating from login
-  // Don't check on every navigation to avoid repeated API calls
-  const shouldCheckSession =
-    !authStore.user && !authStore.loading && (from.name === undefined || from.name === 'login')
-
-  if (shouldCheckSession) {
-    try {
-      // Agregar timeout corto para no bloquear el router
-      const checkTimeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Session check timeout')), 4000)
-      })
-
-      await Promise.race([
-        authStore.checkSession(),
-        checkTimeout
-      ])
-    } catch (err: any) {
-      console.warn('⚠️ Session check timed out or failed in router guard:', err.message)
-      // Continuar con la navegación de todas formas
-    }
+  // Check session if not already loaded
+  if (!authStore.user && !authStore.loading) {
+    await authStore.checkSession()
   }
 
   const isPublicRoute = to.meta.public === true
